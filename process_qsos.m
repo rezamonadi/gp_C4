@@ -1,249 +1,258 @@
 % process_qsos: run DLA detection algorithm on specified objects
+%
+% Apr 28: add occams razor for penalising the missing pixels,
+%   this factor is tuned to affect log likelihood in a range +- 500,
+%   this value could be effective to penalise every likelihoods for zQSO > zCIV
+%   the current implemetation is:
+%     likelihood - occams_factor * (1 - lambda_observed / (max_lambda - min_lambda) )
+%   and occams_factor is a tunable hyperparameter
+% 
+% May 11: out-of-range data penalty,
+%   adding additional log-likelihoods to the null model log likelihood,
+%   this additional log-likelihoods are:
+%     log N(y_bluewards; bluewards_mu, diag(V_bluewards) + bluewards_sigma^2 )
+%     log N(y_redwards;  redwards_mu,  diag(V_redwards)  + redwards_sigma^2 )
 
-% load redshifts/DLA flags from training release
-prior_catalog = ...
-    load(sprintf('%s/catalog', processed_directory(training_release)));
-
-if (ischar(prior_ind))
-  prior_ind = eval(prior_ind);
-end
-
-prior.z_qsos  = prior_catalog.z_qsos(prior_ind);
-prior.dla_ind = prior_catalog.dla_inds(dla_catalog_name);
-prior.dla_ind = prior.dla_ind(prior_ind);
-
-% filter out DLAs from prior catalog corresponding to region of spectrum below
-% Ly∞ QSO rest
-prior.z_dlas = prior_catalog.z_dlas(dla_catalog_name);
-prior.z_dlas = prior.z_dlas(prior_ind);
-
-for i = find(prior.dla_ind)'
-  if (observed_wavelengths(lya_wavelength, prior.z_dlas{i}) < ...
-      observed_wavelengths(lyman_limit,    prior.z_qsos(i)))
-    prior.dla_ind(i) = false;
-  end
-end
-
-prior = rmfield(prior, 'z_dlas');
+occams_factor = 0; % turn this to zero if you don't want the incomplete data penalty
 
 % load QSO model from training release
-variables_to_load = {'rest_wavelengths', 'mu', 'M', 'log_omega', ...
-                     'log_c_0', 'log_tau_0', 'log_beta'};
-load(sprintf('%s/learned_qso_model_%s',             ...
-             processed_directory(training_release), ...
-             training_set_name),                    ...
-     variables_to_load{:});
-
-% load DLA samples from training release
-variables_to_load = {'offset_samples', 'log_nhi_samples', 'nhi_samples'};
-load(sprintf('%s/dla_samples', processed_directory(training_release)), ...
-     variables_to_load{:});
+variables_to_load = {'rest_wavelengths', 'mu', 'M', ...
+    'bluewards_mu', 'bluewards_sigma', ...
+    'redwards_mu', 'redwards_sigma'};
+load(sprintf('%s/learned_zqso_only_model_outdata_normout_%s_norm_%d-%d',             ...
+    processed_directory(training_release), ...
+    training_set_name, normalization_min_lambda, normalization_max_lambda),  ...
+    variables_to_load{:});
 
 % load redshifts from catalog to process
-catalog = load(sprintf('%s/catalog', processed_directory(release)));
+catalog = load(sprintf('%s/zqso_only_catalog', processed_directory(release)));
+
+z_qsos = catalog.z_qsos;
+
+rng('default');
+sequence = scramble(haltonset(1), 'rr2');
+
+% ADDING: second dimension for z_qso
+offset_samples_qso  = sequence(1:num_zqso_samples, 1)';
+
+bins = 150;
+[z_freq, z_bin] = histcounts(z_qsos, z_qso_cut : ((max(z_qsos) - z_qso_cut) / bins) : max(z_qsos));
+for i=length(z_freq):-1:1
+    z_freq(i) = sum(z_freq(1:i));
+end
+
+z_freq = [0 z_freq];
+z_freq = z_freq / max(z_freq);
+[z_freq, I] = unique(z_freq);
+z_bin = z_bin(I);
+
+offset_samples_qso = interp1(z_freq, z_bin, offset_samples_qso);
 
 % load preprocessed QSOs
 variables_to_load = {'all_wavelengths', 'all_flux', 'all_noise_variance', ...
-                     'all_pixel_mask'};
-load(sprintf('%s/preloaded_qsos', processed_directory(release)), ...
-     variables_to_load{:});
-
-% enable processing specific QSOs via setting to_test_ind
-if (ischar(test_ind))
-  test_ind = eval(test_ind);
-end
-
+    'all_pixel_mask'};
+load(sprintf('%s/preloaded_zqso_only_qsos', processed_directory(release)), ...
+    variables_to_load{:});
+test_ind = (catalog.filter_flags == 0);
 all_wavelengths    =    all_wavelengths(test_ind);
 all_flux           =           all_flux(test_ind);
 all_noise_variance = all_noise_variance(test_ind);
 all_pixel_mask     =     all_pixel_mask(test_ind);
+all_thing_ids      =   catalog.thing_ids(test_ind);
 
 z_qsos = catalog.z_qsos(test_ind);
 
 num_quasars = numel(z_qsos);
+if exist('qso_ind', 'var') == 0
+    qso_ind = 1:1:floor(num_quasars/100);
+end
+num_quasars = numel(qso_ind);
 
+%load('./test/M.mat');
 % preprocess model interpolants
 mu_interpolator = ...
     griddedInterpolant(rest_wavelengths,        mu,        'linear');
 M_interpolator = ...
     griddedInterpolant({rest_wavelengths, 1:k}, M,         'linear');
-log_omega_interpolator = ...
-    griddedInterpolant(rest_wavelengths,        log_omega, 'linear');
 
 % initialize results
-min_z_dlas                 = nan(num_quasars, 1);
-max_z_dlas                 = nan(num_quasars, 1);
-log_priors_no_dla          = nan(num_quasars, 1);
-log_priors_dla             = nan(num_quasars, 1);
-log_likelihoods_no_dla     = nan(num_quasars, 1);
-sample_log_likelihoods_dla = nan(num_quasars, num_dla_samples);
-log_likelihoods_dla        = nan(num_quasars, 1);
-log_posteriors_no_dla      = nan(num_quasars, 1);
-log_posteriors_dla         = nan(num_quasars, 1);
+sample_log_posteriors  = nan(num_quasars, num_zqso_samples);
+z_true                        = nan(num_quasars, 1);
+z_map                         = nan(num_quasars, 1);
+signal_to_noise               = nan(num_quasars, 1);
 
-c_0   = exp(log_c_0);
-tau_0 = exp(log_tau_0);
-beta  = exp(log_beta);
+z_list                   = 1:length(offset_samples_qso);
 
-for quasar_ind = 1:num_quasars
-  tic;
+fluxes                   = cell(length(z_list), 1);
+rest_wavelengths         = cell(length(z_list), 1);
 
-  z_qso = z_qsos(quasar_ind);
+% this is just an array allow you to select a range
+% of quasars to run
+quasar_ind = 1;
+q_ind_start = quasar_ind;
 
-  fprintf('processing quasar %i/%i (z_QSO = %0.4f) ...', ...
-         quasar_ind, num_quasars, z_qso);
+% catch the exceptions
+all_exceptions = false(num_quasars, 1);
 
-  this_wavelengths    =    all_wavelengths{quasar_ind};
-  this_flux           =           all_flux{quasar_ind};
-  this_noise_variance = all_noise_variance{quasar_ind};
-  this_pixel_mask     =     all_pixel_mask{quasar_ind};
+for quasar_ind = q_ind_start:num_quasars %quasar list
+    tic;
+    quasar_num = qso_ind(quasar_ind);
+    z_true(quasar_ind)   = z_qsos(quasar_num);
 
-  % convert to QSO rest frame
-  this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qso);
+    fprintf('processing quasar %i/%i (z_true = %0.4f) ...', ...
+        quasar_ind, num_quasars, z_true(quasar_ind));
 
-  ind = (this_rest_wavelengths >= min_lambda) & ...
-        (this_rest_wavelengths <= max_lambda);
+    %computing signal-to-noise ratio
+    this_wavelengths    =    all_wavelengths{quasar_num};
+    this_flux           =           all_flux{quasar_num};
+    this_noise_variance = all_noise_variance{quasar_num};
+    this_pixel_mask     =     all_pixel_mask{quasar_num};
 
-  % keep complete copy of equally spaced wavelengths for absorption
-  % computation
-  this_unmasked_wavelengths = this_wavelengths(ind);
+    this_rest_wavelengths = emitted_wavelengths(this_wavelengths, 4.4088); %roughly highest redshift possible (S2N for everything that may be in restframe)
 
-  ind = ind & (~this_pixel_mask);
+    ind  = this_rest_wavelengths <= max_lambda;
 
-  this_wavelengths      =      this_wavelengths(ind);
-  this_rest_wavelengths = this_rest_wavelengths(ind);
-  this_flux             =             this_flux(ind);
-  this_noise_variance   =   this_noise_variance(ind);
+    this_rest_wavelengths = this_rest_wavelengths(ind);
+    this_flux             =             this_flux(ind);
+    this_noise_variance   =   this_noise_variance(ind);
 
-  this_lya_zs = ...
-      (this_wavelengths - lya_wavelength) / ...
-      lya_wavelength;
+    this_noise_variance(isinf(this_noise_variance)) = .01; %kludge to fix bad data
+    
+    this_pixel_signal_to_noise  = sqrt(this_noise_variance) ./ abs(this_flux);
 
-  % DLA existence prior
-  less_ind = (prior.z_qsos < (z_qso + prior_z_qso_increase));
+    % this is before pixel masking; nanmean to avoid possible NaN values
+    signal_to_noise(quasar_ind) = nanmean(this_pixel_signal_to_noise);
 
-  this_num_dlas    = nnz(prior.dla_ind(less_ind));
-  this_num_quasars = nnz(less_ind);
-  this_p_dla = this_num_dlas / this_num_quasars;
+    % move these outside the parfor to avoid constantly querying these large arrays
+    this_out_wavelengths    =    all_wavelengths{quasar_num};
+    this_out_flux           =           all_flux{quasar_num};
+    this_out_noise_variance = all_noise_variance{quasar_num};
+    this_out_pixel_mask     =     all_pixel_mask{quasar_num};
 
-  log_priors_dla(quasar_ind) = ...
-      log(                   this_num_dlas) - log(this_num_quasars);
-  log_priors_no_dla(quasar_ind) = ...
-      log(this_num_quasars - this_num_dlas) - log(this_num_quasars);
+    % Test: see if this spec is empty; this error handling line be outside parfor
+    % would avoid running lots of empty spec in parallel workers
+    if all(size(this_out_wavelengths) == [0 0])
+        all_exceptions(quasar_ind, 1) = 1;
+        continue;
+    end
+    
+    parfor i = 1:num_zqso_samples       %variant redshift in quasars
+        z_qso = offset_samples_qso(i);
 
-  fprintf_debug('\n');
-  fprintf_debug(' ...     p(   DLA | z_QSO)        : %0.3f\n',     this_p_dla);
-  fprintf_debug(' ...     p(no DLA | z_QSO)        : %0.3f\n', 1 - this_p_dla);
+        % keep a copy inside the parfor since we are modifying them
+        this_wavelengths    = this_out_wavelengths;
+        this_flux           = this_out_flux;
+        this_noise_variance = this_out_noise_variance;
+        this_pixel_mask     = this_out_pixel_mask;
+        
+        %Cut off observations
+        max_pos_lambda = observed_wavelengths(max_lambda, z_qso);
+        min_pos_lambda = observed_wavelengths(min_lambda, z_qso);
+        max_observed_lambda = min(max_pos_lambda, max(this_wavelengths));
 
-  % interpolate model onto given wavelengths
-  this_mu = mu_interpolator( this_rest_wavelengths);
-  this_M  =  M_interpolator({this_rest_wavelengths, 1:k});
+        min_observed_lambda = max(min_pos_lambda, min(this_wavelengths));
+        lambda_observed = (max_observed_lambda - min_observed_lambda);
+        
+        ind = (this_wavelengths > min_observed_lambda) & (this_wavelengths < max_observed_lambda);
+        this_flux           = this_flux(ind);
+        this_noise_variance = this_noise_variance(ind);
+        this_wavelengths    = this_wavelengths(ind);
+        this_pixel_mask     = this_pixel_mask(ind);
 
-  this_log_omega = log_omega_interpolator(this_rest_wavelengths);
-  this_omega2 = exp(2 * this_log_omega);
+        % convert to QSO rest frame
+        this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qso);
 
-  this_scaling_factor = 1 - exp(-tau_0 .* (1 + this_lya_zs).^beta) + c_0;
+        %normalizing here
+        ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+            (this_rest_wavelengths <= normalization_max_lambda);
 
-  this_omega2 = this_omega2 .* this_scaling_factor.^2;
+        this_median         = nanmedian(this_flux(ind));
+        this_flux           = this_flux / this_median;
+        this_noise_variance = this_noise_variance / this_median .^ 2;
+        
+        % Normalise the observed flux for out-of-range model since the
+        % redward- and blueward- models were trained with normalisation.
+        %Find probability for out-of-range model
+        this_normalized_flux = this_out_flux / this_median; % since we've modified this_flux, we thus need to
+                                                            % use this_out_flux which is outside the parfor loop
+        this_normalized_noise_variance = this_out_noise_variance / this_median .^2;
 
-  % baseline: probability of no DLA model
-  log_likelihoods_no_dla(quasar_ind) = ...
-      log_mvnpdf_low_rank(this_flux, this_mu, this_M, ...
-          this_omega2 + this_noise_variance);
+        % select blueward region
+        ind_bw = (this_out_wavelengths < min_observed_lambda) & ~(this_out_pixel_mask);
+        this_normalized_flux_bw           = this_normalized_flux(ind_bw);
+        this_normalized_noise_variance_bw = this_normalized_noise_variance(ind_bw);
+        [n_bw, ~] = size(this_normalized_flux_bw);
+        % select redward region
+        ind_rw = (this_out_wavelengths > max_observed_lambda)  & ~(this_out_pixel_mask)
+        this_normalized_flux_rw           = this_normalized_flux(ind_rw);
+        this_normalized_noise_variance_rw = this_normalized_noise_variance(ind_rw);
+        [n_rw, ~] = size(this_normalized_flux_rw);
 
-  log_posteriors_no_dla(quasar_ind) = ...
-      log_priors_no_dla(quasar_ind) + log_likelihoods_no_dla(quasar_ind);
+        % calculate log likelihood of iid multivariate normal with
+        %   log N(y; mu, diag(V) + sigma^2 )
+        bw_log_likelihood = log_mvnpdf_iid(this_normalized_flux_bw, ...
+            bluewards_mu      * ones(n_bw, 1), ...
+            bluewards_sigma^2 * ones(n_bw, 1) + this_normalized_noise_variance_bw );
+        rw_log_likelihood = log_mvnpdf_iid(this_normalized_flux_rw, ...
+            redwards_mu      * ones(n_rw, 1), ...
+            redwards_sigma^2 * ones(n_rw, 1) + this_normalized_noise_variance_rw );
 
-  fprintf_debug(' ... log p(D | z_QSO, no DLA)     : %0.2f\n', ...
-                log_likelihoods_no_dla(quasar_ind));
+        ind = (this_rest_wavelengths >= min_lambda) & ...
+            (this_rest_wavelengths <= max_lambda);
+        
+        ind = ind & (~this_pixel_mask);
 
-  min_z_dlas(quasar_ind) = min_z_dla(this_wavelengths, z_qso);
-  max_z_dlas(quasar_ind) = max_z_dla(this_wavelengths, z_qso);
+        this_wavelengths      =      this_wavelengths(ind);
+        this_rest_wavelengths = this_rest_wavelengths(ind);
+        this_flux             =             this_flux(ind);
+        this_noise_variance   =   this_noise_variance(ind);
 
-  sample_z_dlas = ...
-       min_z_dlas(quasar_ind) +  ...
-      (max_z_dlas(quasar_ind) - min_z_dlas(quasar_ind)) * offset_samples;
+        this_noise_variance(isinf(this_noise_variance)) = nanmean(this_noise_variance); %rare kludge to fix bad data
+        
+        fluxes{i}           = this_flux;
+        rest_wavelengths{i} = this_rest_wavelengths;
+        
+        % interpolate model onto given wavelengths
+        this_mu = mu_interpolator( this_rest_wavelengths);
+        this_M  =  M_interpolator({this_rest_wavelengths, 1:k});
+        %Debug output
+        %all_mus{z_list_ind} = this_mu;
+        %all_Ms{z_list_ind} = this_M;
 
-  % ensure enough pixels are on either side for convolving with
-  % instrument profile
-  padded_wavelengths = ...
-      [logspace(log10(min(this_unmasked_wavelengths)) - width * pixel_spacing, ...
-                log10(min(this_unmasked_wavelengths)) - pixel_spacing,         ...
-                width)';                                                       ...
-       this_unmasked_wavelengths;                                              ...
-       logspace(log10(max(this_unmasked_wavelengths)) + pixel_spacing,         ...
-                log10(max(this_unmasked_wavelengths)) + width * pixel_spacing, ...
-                width)'                                                        ...
-      ];
+        
+        sample_log_priors = 0;
 
-  % to retain only unmasked pixels from computed absorption profile
-  ind = (~this_pixel_mask(ind));
+        occams = occams_factor * (1 - lambda_observed / (max_lambda - min_lambda) );
 
-  % compute probabilities under DLA model for each of the sampled
-  % (normalized offset, log(N HI)) pairs
-  parfor i = 1:num_dla_samples
-    % absorption corresponding to this sample
-    absorption = voigt(padded_wavelengths, sample_z_dlas(i), ...
-                       nhi_samples(i), num_lines);
+        sample_log_posteriors(quasar_ind, i) = ...
+            log_mvnpdf_low_rank(this_flux, this_mu, this_M, this_noise_variance) + sample_log_priors ...
+            + bw_log_likelihood + rw_log_likelihood ...
+            - occams;
+    end
+    this_sample_log = sample_log_posteriors(quasar_ind, :);
+    
+    [~, I] = nanmax(this_sample_log);
+    
+    z_map(quasar_ind) = offset_samples_qso(I);                                  %MAP estimate
+    
+    fprintf(' took %0.3fs.\n', toc);
 
-    absorption = absorption(ind);
-
-    dla_mu     = this_mu     .* absorption;
-    dla_M      = this_M      .* absorption;
-    dla_omega2 = this_omega2 .* absorption.^2;
-
-    sample_log_likelihoods_dla(quasar_ind, i) = ...
-        log_mvnpdf_low_rank(this_flux, dla_mu, dla_M, ...
-            dla_omega2 + this_noise_variance);
-  end
-
-  % compute sample probabilities and log likelihood of DLA model in
-  % numerically safe manner
-  max_log_likelihood = max(sample_log_likelihoods_dla(quasar_ind, :));
-
-  sample_probabilities = ...
-      exp(sample_log_likelihoods_dla(quasar_ind, :) - ...
-          max_log_likelihood);
-
-  log_likelihoods_dla(quasar_ind) = ...
-      max_log_likelihood + log(mean(sample_probabilities));
-
-  log_posteriors_dla(quasar_ind) = ...
-      log_priors_dla(quasar_ind) + log_likelihoods_dla(quasar_ind);
-
-  fprintf_debug(' ... log p(D | z_QSO,    DLA)     : %0.2f\n', ...
-                log_likelihoods_dla(quasar_ind));
-  fprintf_debug(' ... log p(DLA | D, z_QSO)        : %0.2f\n', ...
-                log_posteriors_dla(quasar_ind));
-
-  fprintf(' took %0.3fs.\n', toc);
+    zdiff = z_map(quasar_ind) - z_qsos(quasar_num);
+    if mod(quasar_ind, 1) == 0
+        t = toc;
+        fprintf('Done QSO %i of %i in %0.3f s. True z_QSO = %0.4f, I=%d map=%0.4f dif = %.04f\n', ...
+            quasar_ind, num_quasars, t, z_qsos(quasar_num), I, z_map(quasar_ind), zdiff);
+    end
 end
 
-% compute model posteriors in numerically safe manner
-max_log_posteriors = ...
-    max([log_posteriors_no_dla, log_posteriors_dla], [], 2);
-
-model_posteriors = ...
-    exp([log_posteriors_no_dla, log_posteriors_dla] - max_log_posteriors);
-
-model_posteriors = model_posteriors ./ sum(model_posteriors, 2);
-
-p_no_dlas = model_posteriors(:, 1);
-p_dlas    = 1 - p_no_dlas;
-
 % save results
-variables_to_save = {'training_release', 'training_set_name', ...
-                     'dla_catalog_name', 'prior_ind', 'release', ...
-                     'test_set_name', 'test_ind', 'prior_z_qso_increase', ...
-                     'max_z_cut', 'num_lines', 'min_z_dlas', 'max_z_dlas', ...
-                     'log_priors_no_dla', 'log_priors_dla', ...
-                     'log_likelihoods_no_dla', 'sample_log_likelihoods_dla', ...
-                     'log_likelihoods_dla', 'log_posteriors_no_dla', ...
-                     'log_posteriors_dla', 'model_posteriors', 'p_no_dlas', ...
-                     'p_dlas'};
+variables_to_save = {'training_release', 'training_set_name', 'offset_samples_qso', 'sample_log_posteriors', ...
+     'z_map', 'z_qsos', 'all_thing_ids', 'test_ind', 'z_true'};
 
-filename = sprintf('%s/processed_qsos_%s', ...
-                   processed_directory(release), ...
-                   test_set_name);
+filename = sprintf('%s/processed_zqso_only_qsos_%s-%s_%d-%d_%d-%d_outdata_normout_oc%d', ...
+    processed_directory(release), ...
+    test_set_name, optTag, ...
+    qso_ind(1), qso_ind(1) + numel(qso_ind), ...
+    normalization_min_lambda, normalization_max_lambda, occams_factor);
 
 save(filename, variables_to_save{:}, '-v7.3');

@@ -4,7 +4,7 @@
 
 % load QSO catalog
 variables_to_load = {'z_qsos', 'plates', 'mjds', 'fiber_ids', 'filter_flags'};
-load(sprintf('%s/catalog', processed_directory(release)), ...
+load(sprintf('%s/zqso_only_catalog', processed_directory(release)), ...
     variables_to_load{:});
 
 num_quasars = numel(z_qsos);
@@ -23,23 +23,10 @@ for i = 1:num_quasars
   [this_wavelengths, this_flux, this_noise_variance, this_pixel_mask] ...
       = file_loader(plates(i), mjds(i), fiber_ids(i));
 
-  this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qsos(i));
+  % do not normalize flux: this is done in the learning and processing code.
 
-  % normalize flux
-  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
-        (this_rest_wavelengths <= normalization_max_lambda) & ...
-        (~this_pixel_mask);
-
-  this_median = nanmedian(this_flux(ind));
-
-  % bit 2: cannot normalize (all normalizing pixels are masked)
-  if (isnan(this_median))
-    filter_flags(i) = bitset(filter_flags(i), 3, true);
-    continue;
-  end
-
-  ind = (this_rest_wavelengths >= min_lambda) & ...
-        (this_rest_wavelengths <= max_lambda) & ...
+  ind = (this_wavelengths >= (min_lambda * (z_qso_cut) + 1)) & ...
+        (this_wavelengths <= (max_lambda * (z_qso_training_max_cut) + 1)) & ...
         (~this_pixel_mask);
 
   % bit 3: not enough pixels available
@@ -48,23 +35,10 @@ for i = 1:num_quasars
     continue;
   end
 
-  all_normalizers(i) = this_median;
-
-  this_flux           = this_flux           / this_median;
-  this_noise_variance = this_noise_variance / this_median^2;
-
-  ind = (this_rest_wavelengths >= loading_min_lambda) & ...
-        (this_rest_wavelengths <= loading_max_lambda);
-
-  % add one pixel on either side
-  available_ind = find(~ind & ~this_pixel_mask);
-  ind(min(available_ind(available_ind > find(ind, 1, 'last' )))) = true;
-  ind(max(available_ind(available_ind < find(ind, 1, 'first')))) = true;
-
-  all_wavelengths{i}    =    this_wavelengths(ind);
-  all_flux{i}           =           this_flux(ind);
-  all_noise_variance{i} = this_noise_variance(ind);
-  all_pixel_mask{i}     =     this_pixel_mask(ind);
+  all_wavelengths{i}    =    this_wavelengths;%no longer (ind)
+  all_flux{i}           =           this_flux;
+  all_noise_variance{i} = this_noise_variance;
+  all_pixel_mask{i}     =     this_pixel_mask;
 
   fprintf('loaded quasar %i of %i (%i/%i/%04i)\n', ...
           i, num_quasars, plates(i), mjds(i), fiber_ids(i));
@@ -75,9 +49,9 @@ variables_to_save = {'loading_min_lambda', 'loading_max_lambda', ...
                      'min_num_pixels', 'all_wavelengths', 'all_flux', ...
                      'all_noise_variance', 'all_pixel_mask', ...
                      'all_normalizers'};
-save(sprintf('%s/preloaded_qsos', processed_directory(release)), ...
+save(sprintf('%s/preloaded_zqso_only_qsos', processed_directory(release)), ...
      variables_to_save{:}, '-v7.3');
 
 % write new filter flags to catalog
-save(sprintf('%s/catalog', processed_directory(release)), ...
+save(sprintf('%s/zqso_only_catalog', processed_directory(release)), ...
      'filter_flags', '-append');
