@@ -1,12 +1,11 @@
-DLA detection pipleine for BOSS quasar spectra
+Redshift Estimation for BOSS quasar spectra
 ==============================================
 
-This code repository contains code to completely reproduce the DLA
-catalog reported in
+This code repository contains code to completely reproduce the quasar redshift
+estimates reported in
 
-> R Garnett, S Ho, S Bird, and J Schnedier. Detecting Damped Lyman-α
-> Absorbers with Gaussian Processes. [arXiv:1605.04460
-> [astro-ph.CO]](https://arxiv.org/abs/1605.04460),
+> Leah Fauber, Ming-Feng Ho, Simeon Bird, Christian R. Shelton, Roman Garnett, Ishita Korde
+> Automated Measurement of Quasar Redshift with a Gaussian Process. 
 
 including all intermediate data products including the Gaussian
 process null model described therein. The provided parameters should
@@ -65,34 +64,13 @@ unfiltered lines of sight to the `data/dr12q/spectra` directory.
 Loading and preprocessing spectra
 ---------------------------------
 
-Now we load these data, continue applying filters, and do some basic
-preprocessing. The additional filters are:
-
-* spectra that have no nonmasked pixels in the range [1310, 1325]
-  Angstroms (QSO restframe) are filtered, as they cannot be normalized
-* spectra with fewer than 200 nonmasked pixels in the range [911,
-  1217] Angstroms (QSO restframe) are filtered.
-
-The preprocessing steps are to:
-
-* truncate spectra to only contain pixels in the range [911, 1217]
-  Angstroms QSO rest
-* normalize flux and noise variance by dividing by the median flux in
-  the range [1310, 1325] Angstroms QSO rest
+Now we load these data. Spectra with fewer than 400 nonmasked pixels are filtered.
 
 Relevant parameters in `set_parameters` that can be tweaked if
 desired:
 
     % preprocessing parameters
-    min_num_pixels = 200;                         % minimum number of non-masked pixels
-
-    % normalization parameters
-    normalization_min_lambda = 1310;              % range of rest wavelengths to use   Å
-    normalization_max_lambda = 1325;              %   for flux normalization
-
-    % file loading parameters
-    loading_min_lambda = 910;                     % range of rest wavelengths to load  Å
-    loading_max_lambda = 1217;
+    min_num_pixels = 400;                         % minimum number of non-masked pixels
 
 When ready, the MATLAB code to preload the spectra is:
 
@@ -112,21 +90,18 @@ When ready, the MATLAB code to preload the spectra is:
 The result will be a completed catalog data file,
 `data/[release]/processed/catalog.mat`, with complete filtering
 information and a file containing preloaded and preprocessed data for
-the 162861 nonfiltered spectra,
+the 158821 nonfiltered spectra,
 `data/[release]/processed/preloaded_qsos.mat`.
 
 Building GP models for quasar spectra
 -------------------------------------
 
 Now we build our models, including our Gaussian process null model for
-quasar emission spectra and our model for spectra containing DLAs.
+quasar emission spectra.
 
 To build the null model for quasar emission spectra, we need to
-indicate a set of spectra to use for training, which should be
-nominally DLA-free. Here we select all spectra:
-
-* in DR9
-* not removed by our filtering steps during loading
+indicate a set of spectra to use for training. Here we select all 
+spectra in DR9 and not removed by our filtering steps.
 
 These particular choices may be accomplished with:
 
@@ -152,11 +127,11 @@ Relevant parameters in `set_parameters` that can be tweaked if
 desired:
 
     % null model parameters
-    min_lambda         =  911.75;                 % range of rest wavelengths to       Å
-    max_lambda         = 1215.75;                 %   model
+    min_lambda         =  910;                 % range of rest wavelengths to       Å
+    max_lambda         = 3000;                 %   model
     dlambda            =    0.25;                 % separation of wavelength grid      Å
     k                  = 20;                      % rank of non-diagonal contribution
-    max_noise_variance = 1^2;                     % maximum pixel noise allowed during model training
+    max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
 
     % optimization parameters
     minFunc_options =               ...           % optimization options for model fitting
@@ -172,7 +147,7 @@ is:
 The learned qso model is stored in
 `data/[training_release]/processed/learned_qso_model_[training_set_name].mat`.
 
-Processing spectra for DLA detection
+Processing spectra for Redshift Estimation
 ------------------------------------
 
 Finally, we may use our built model to compute the posterior
