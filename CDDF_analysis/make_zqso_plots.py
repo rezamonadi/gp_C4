@@ -10,6 +10,7 @@ from astropy.io import fits
 
 from .set_parameters import *
 from .qso_loader import QSOLoaderZ
+from .qso_loader import search_index_from_another
 
 # change fontsize
 matplotlib.rcParams.update({'font.size' : 14})
@@ -23,7 +24,7 @@ def generate_qsos(base_directory="", release="dr12q",
         los_concordance="data/dla_catalogs/dr9q_concordance/processed/los_catalog",
         suppressed=False):
     '''
-    Return a QSOLoader instances : zqsos
+    Return a QSOLoader instances : qsos
     '''
     preloaded_file = os.path.join( 
         base_directory, processed_directory(release), "preloaded_zqso_only_qsos.mat")
@@ -36,13 +37,13 @@ def generate_qsos(base_directory="", release="dr12q",
     sample_file    = os.path.join(
         base_directory, processed_directory(release), "dla_samples.mat")
 
-    qsos_zqsos = QSOLoaderZ(
+    qsos = QSOLoaderZ(
         preloaded_file=preloaded_file, catalogue_file=catalogue_file, 
         learned_file=learned_file, processed_file=processed_file,
         dla_concordance=dla_concordance, los_concordance=los_concordance,
         sample_file=sample_file, occams_razor=False, suppressed=suppressed)
 
-    return qsos_zqsos
+    return qsos
 
 def do_procedure_plots(qsos, model_min_lambda=910, model_max_lambda=3000):
     # scaling factor between rest_wavelengths to pixels
@@ -118,6 +119,109 @@ def do_procedure_plots(qsos, model_min_lambda=910, model_max_lambda=3000):
     plt.tight_layout()
     save_figure("covariance_matrix")
     plt.clf()
+
+def do_plot_misfit(qsos, delta_z=0.5):
+    '''
+    Plot all of the misfit spectra with |z_map - z_qso| > 0.5
+    '''
+    # z_map versus z_true
+    index = qsos.plot_z_map(delta_z=delta_z)
+    save_figure("z_map_vs_z_true_pure-z")
+    plt.clf()
+    plt.close()
+
+    print("Misfits : ", qsos.thing_ids[index].shape[0])
+    print("Thing_IDs = ", qsos.thing_ids[index])
+    print("MSE z_true-z_map : {:.3g}".format( np.mean( (qsos.z_map - qsos.z_true)**2 )  ))
+
+    # 2D histogram
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    (h, xedges, yedges, im) = ax.hist2d(qsos.z_map, qsos.z_true,
+        bins = int(np.sqrt(qsos.z_map.shape[0])/2), cmap='gray_r', norm=matplotlib.colors.LogNorm())
+    ax.set_xlabel(r"$z_{{QSO,MAP}}$")
+    ax.set_ylabel(r"$z_{{QSO,catalog}}$")
+    fig.colorbar(im, ax=ax)
+    save_figure("hist2d_z_map_vs_z_true_pure-z-log")
+    plt.clf()
+    plt.close()
+
+    for nspec in np.where(index)[0]:
+        print("Plotting {}/{} ...".format(nspec, len(qsos.z_qsos)))
+
+        # saving plots: z_samples versus poseteriors
+        qsos.plot_z_sample_posteriors(nspec, dla_samples=True)
+        plt.savefig("{}_posterior_zqso_samples_delta_z_{}.pdf".format(
+                qsos.thing_ids[nspec], delta_z),
+                dpi=150, format='pdf')
+        plt.close()
+        plt.clf()
+
+        # saving plots: MAP estimate model
+        qsos.plot_this_mu(nspec=nspec, 
+            num_forest_lines=0, z_sample=qsos.z_map[nspec],
+            suppressed=False)
+        plt.ylim(-1, 5)
+        save_figure(
+            "{}_this_mu_delta_z_{}_ZMAP".format(
+                qsos.thing_ids[nspec], delta_z))
+        plt.close()
+        plt.clf()
+
+        # saving plots: True QSO rest-frame
+        qsos.plot_this_mu(nspec=nspec, 
+            num_forest_lines=0, z_sample=qsos.z_qsos[nspec],
+            suppressed=False)
+        plt.ylim(-1, 5)
+        save_figure(
+            "{}_this_mu_delta_z_{}_ZTrue".format(
+                qsos.thing_ids[nspec], delta_z))
+        plt.close()
+        plt.clf()
+
+def do_plot_thing_ids(qsos, selected_thing_ids=[544031279, 27885089]):
+    '''
+    Some selected thing_ids with:
+    1. their log posteriors
+    2. their z_map model
+    3. their z_true model
+
+    The default thing_ids selected from the Leah et al. (2020) paper.
+    '''
+    all_nspecs = search_index_from_another(selected_thing_ids, qsos.thing_ids)
+
+    for nspec in all_nspecs:
+        print("Plotting {}/{} ...".format(nspec, len(qsos.z_qsos)))
+
+        # saving plots: z_samples versus poseteriors
+        qsos.plot_z_sample_posteriors(nspec, dla_samples=True)
+        plt.savefig("{}_posterior_zqso_samples.pdf".format(
+                qsos.thing_ids[nspec]),
+                dpi=150, format='pdf')
+        plt.close()
+        plt.clf()
+
+        # saving plots: MAP estimate model
+        qsos.plot_this_mu(nspec=nspec, 
+            num_forest_lines=0, z_sample=qsos.z_map[nspec],
+            suppressed=False)
+        plt.ylim(-1, 5)        
+        save_figure(
+            "{}_this_mu_ZMAP".format(
+                qsos.thing_ids[nspec]))
+        plt.close()
+        plt.clf()
+
+        # saving plots: True QSO rest-frame
+        qsos.plot_this_mu(nspec=nspec, 
+            num_forest_lines=0, z_sample=qsos.z_qsos[nspec],
+            suppressed=False)
+        plt.ylim(-1, 5)
+        save_figure(
+            "{}_this_mu_ZTrue".format(
+                qsos.thing_ids[nspec]))
+        plt.close()
+        plt.clf()
+
 
 def do_plot_example(qsos, nspec=18):
     '''
