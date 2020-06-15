@@ -5,7 +5,8 @@ This code repository contains code to completely reproduce the quasar redshift
 estimates reported in
 
 > Leah Fauber, Ming-Feng Ho, Simeon Bird, Christian R. Shelton, Roman Garnett, Ishita Korde
-> Automated Measurement of Quasar Redshift with a Gaussian Process. 
+> Automated Measurement of Quasar Redshift with a Gaussian Process. [arXiv:2006.07343
+> [astro-ph.GA]](https://arxiv.org/abs/2006.07343),
 
 including all intermediate data products including the Gaussian
 process null model described therein. The provided parameters should
@@ -88,10 +89,10 @@ When ready, the MATLAB code to preload the spectra is:
     preload_qsos;
 
 The result will be a completed catalog data file,
-`data/[release]/processed/catalog.mat`, with complete filtering
+`data/[release]/processed/zqso_only_catalog.mat`, with complete filtering
 information and a file containing preloaded and preprocessed data for
 the 158821 nonfiltered spectra,
-`data/[release]/processed/preloaded_qsos.mat`.
+`data/[release]/processed/preloaded_zqso_only_qsos.mat`.
 
 Building GP models for quasar spectra
 -------------------------------------
@@ -100,7 +101,7 @@ Now we build our models, including our Gaussian process null model for
 quasar emission spectra.
 
 To build the null model for quasar emission spectra, we need to
-indicate a set of spectra to use for training. Here we select all 
+indicate a set of spectra to use for training. Here we select all
 spectra in DR9 and not removed by our filtering steps.
 
 These particular choices may be accomplished with:
@@ -145,7 +146,7 @@ is:
     learn_qso_model;
 
 The learned qso model is stored in
-`data/[training_release]/processed/learned_qso_model_[training_set_name].mat`.
+`data/[training_release]/processed/learned_zqso_only_model_outdata_normout_[training_set_name]_norm_[normalization_min_lambda]-[normalization_max_lambda].mat`.
 
 Processing spectra for Redshift Estimation
 ------------------------------------
@@ -163,7 +164,7 @@ learned above, we may use
     training_set_name = 'dr9q_minus_concordance';
 
 (the code will attempt to load the model from a file called
-`data/[training_release]/processed/learned_qso_model_[training_set_name].mat`.)
+`data/[training_release]/processed/learned_zqso_only_model_outdata_normout_[training_set_name]_norm_[normalization_min_lambda]-[normalization_max_lambda].mat`.)
 
 Next, we must specify which spectra to process. Here we use
 all DR12Q spectra that were not filtered:
