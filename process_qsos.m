@@ -35,18 +35,9 @@ sequence = scramble(haltonset(1), 'rr2');
 % ADDING: second dimension for z_qso
 offset_samples_qso  = sequence(1:num_zqso_samples, 1)';
 
-bins = 150;
-[z_freq, z_bin] = histcounts(z_qsos, z_qso_cut : ((max(z_qsos) - z_qso_cut) / bins) : max(z_qsos));
-for i=length(z_freq):-1:1
-    z_freq(i) = sum(z_freq(1:i));
-end
-
-z_freq = [0 z_freq];
-z_freq = z_freq / max(z_freq);
-[z_freq, I] = unique(z_freq);
-z_bin = z_bin(I);
-
-offset_samples_qso = interp1(z_freq, z_bin, offset_samples_qso);
+% uniformly sample from z_qso_cut - 0.01 to max(z_qsos) + 0.01
+offset_samples_qso = (z_qso_cut - kms_to_z(3000)) + ...
+    (max(z_qsos) + kms_to_z(3000) - (z_qso_cut - kms_to_z(3000)) ) * offset_samples_qso;
 
 % load preprocessed QSOs
 variables_to_load = {'all_wavelengths', 'all_flux', 'all_noise_variance', ...
@@ -93,6 +84,7 @@ q_ind_start = quasar_ind;
 
 % catch the exceptions
 all_exceptions = false(num_quasars, 1);
+all_posdeferrors = zeros(num_quasars, 1);
 
 for quasar_ind = q_ind_start:num_quasars %quasar list
     tic;
@@ -135,6 +127,12 @@ for quasar_ind = q_ind_start:num_quasars %quasar list
         all_exceptions(quasar_ind, 1) = 1;
         continue;
     end
+
+    % record posdef error;
+    % if it only happens for some samples not all of the samples, I would prefer
+    % to think it is due to the noise_variace of the incomplete data combine with
+    % the K causing the Covariance behaving weirdly.
+    this_posdeferror = false(1, num_zqso_samples);
     
     parfor i = 1:num_zqso_samples       %variant redshift in quasars
         z_qso = offset_samples_qso(i);
@@ -224,10 +222,20 @@ for quasar_ind = q_ind_start:num_quasars %quasar list
 
         occams = occams_factor * (1 - lambda_observed / (max_lambda - min_lambda) );
 
-        sample_log_posteriors(quasar_ind, i) = ...
-            log_mvnpdf_low_rank(this_flux, this_mu, this_M, this_noise_variance) + sample_log_priors ...
-            + bw_log_likelihood + rw_log_likelihood ...
-            - occams;
+        % The error handler to deal with Postive definite errors sometime happen
+        try
+            sample_log_posteriors(quasar_ind, i) = ...
+                log_mvnpdf_low_rank(this_flux, this_mu, this_M, this_noise_variance) + sample_log_priors ...
+                + bw_log_likelihood + rw_log_likelihood ...
+                - occams;
+        catch ME
+            if (strcmp(ME.identifier,'MATLAB:posdef'))
+                this_posdeferror(1, i) = true;
+                fprintf('(QSO %d, Sample %d): Matrix must be positive definite. We skip this sample but you need to be careful about this spectrum', quasar_num, i)
+                continue
+            end
+                rethrow(ME)
+        end
     end
     this_sample_log = sample_log_posteriors(quasar_ind, :);
     
@@ -243,11 +251,15 @@ for quasar_ind = q_ind_start:num_quasars %quasar list
         fprintf('Done QSO %i of %i in %0.3f s. True z_QSO = %0.4f, I=%d map=%0.4f dif = %.04f\n', ...
             quasar_ind, num_quasars, t, z_qsos(quasar_num), I, z_map(quasar_ind), zdiff);
     end
+
+    % record posdef error;
+    % count number of posdef errors; if it is == num_zqsos_sample, then we have troubles.
+    all_posdeferrors(quasar_ind, 1) = sum(this_posdeferror);
 end
 
 % save results
 variables_to_save = {'training_release', 'training_set_name', 'offset_samples_qso', 'sample_log_posteriors', ...
-     'z_map', 'z_qsos', 'all_thing_ids', 'test_ind', 'z_true'};
+     'z_map', 'z_qsos', 'all_thing_ids', 'test_ind', 'z_true', 'all_posdeferrors', 'all_exceptions'};
 
 filename = sprintf('%s/processed_zqso_only_qsos_%s-%s_%d-%d_%d-%d_outdata_normout_oc%d', ...
     processed_directory(release), ...
