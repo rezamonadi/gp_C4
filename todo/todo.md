@@ -4,6 +4,8 @@
 
 - [ ] Redshift code has out-data model (the i.i.d. Gaussian models for data outside the range of modelling window), which is not needed for CIV code.
 
+- [ ] Need a MATLAB version of `read_spec.m` for DR7. Python version in [tutorials/read_spec_dr7.py](tutorials/read_spec_dr7.py)
+
 - Redshift code doesn't have Voigt.c, which should be added with CIV profile (assumed to be a doublet voigt).
   - [ ] add `voigt.c` and change to doublet.
 
