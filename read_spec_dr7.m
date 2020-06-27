@@ -36,11 +36,11 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 	header = fitsinfo(filename);
 	s = size(header.PrimaryData.Keywords);
 	for i=1:s(1)
-	    if (size(cH.PrimaryData.Keywords{i,1})==[1,6])
-		if (cH.PrimaryData.Keywords{i,1}=='COEFF0')
+	    if (size(header.PrimaryData.Keywords{i,1})==[1,6])
+		if (header.PrimaryData.Keywords{i,1}=='COEFF0')
 		    coeff0=cH.PrimaryData.Keywords{i,2};
 		end
-		if (cH.PrimaryData.Keywords{i,1}=='COEFF1')
+		if (header.PrimaryData.Keywords{i,1}=='COEFF1')
 		    coeff1=cH.PrimaryData.Keywords{i,2};
 		    
 		end
