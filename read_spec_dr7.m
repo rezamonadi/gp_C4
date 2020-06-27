@@ -16,28 +16,30 @@
 
 function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filename)
 
-measurements = fitsread(filename);
-%           'binarytable',  1, ...
-%           'tablecolumns', 1:4);
+	measurements = fitsread(filename);
+	%           'binarytable',  1, ...
+	%           'tablecolumns', 1:4);
 
-% the Primary table contains spectra
+	% the Primary table contains spectra
 
-% acquire un-continuum subtracted spectrum
-flux = measurements(1,:);
+	% acquire un-continuum subtracted spectrum
+	flux = measurements(1,:);
 
-% noise (standard deviation)
-noise = measurements(3,:);
-noise_ratio = noise./flux;
-noise_variance = noise.^2;
-% mask array
-and_mask = measurements(4,:);
+	% noise (standard deviation)
+	noise = measurements(3,:);
+	noise_ratio = noise./flux;
+	noise_variance = noise.^2;
+	% mask array
+	and_mask = measurements(4,:);
 
-% acquire rest wavelength
-header = fitsinfo(filename);
-coef0 = header.PrimaryData.Keywords{19,2}; % Center wavelength (log10) of first pi
-coef1 = header.PrimaryData.Keywords{20,2}; % Log10 dispersion per pixel
+	% acquire rest wavelength
+	header = fitsinfo(filename);
+	coef0 = header.PrimaryData.Keywords{208,2}; % Center wavelength (log10) of first pi
+	coef1 = header.PrimaryData.Keywords{209,2}; % Log10 dispersion per pixel
 
-length = numel(flux);
+	length = numel(flux);
 
-wavelengths = 10.^(linspace(coef0, coef0 + coef1*(length + 1), length));
-pixel_mask =  (noise_ratio>=2) | (and_mask==0x800000);
+	wavelengths = 10.^(linspace(coef0, coef0 + coef1*(length + 1), length));
+	
+	pixel_mask =  (noise_ratio>=2) | (and_mask==hex2dec('0x800000')); 
+end
