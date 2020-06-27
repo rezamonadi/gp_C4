@@ -34,8 +34,20 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 
 	% acquire rest wavelength
 	header = fitsinfo(filename);
-	coef0 = header.PrimaryData.Keywords{208,2}; % Center wavelength (log10) of first pi
-	coef1 = header.PrimaryData.Keywords{209,2}; % Log10 dispersion per pixel
+	s = size(header.PrimaryData.Keywords);
+	for i=1:s(1)
+	    if (size(cH.PrimaryData.Keywords{i,1})==[1,6])
+		if (cH.PrimaryData.Keywords{i,1}=='COEFF0')
+		    coeff0=cH.PrimaryData.Keywords{i,2};
+		end
+		if (cH.PrimaryData.Keywords{i,1}=='COEFF1')
+		    coeff1=cH.PrimaryData.Keywords{i,2};
+		    
+		end
+	    end
+	end
+	%coef0 = header.PrimaryData.Keywords{208,2} % Center wavelength (log10) of first pi
+	%coef1 = header.PrimaryData.Keywords{209,2} % Log10 dispersion per pixel
 
 	length = numel(flux);
 
