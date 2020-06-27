@@ -51,7 +51,7 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 
 	length = numel(flux);
 
-	wavelengths = 10.^(linspace(coef0, coef0 + coef1*(length + 1), length));
+	wavelengths = 10.^(linspace(coeff0, coeff0 + coeff1*(length + 1), length));
 	
 	pixel_mask =  (noise_ratio>=2) | (and_mask==hex2dec('0x800000')); 
 end
