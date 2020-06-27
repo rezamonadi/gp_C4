@@ -38,10 +38,10 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 	for i=1:s(1)
 	    if (size(header.PrimaryData.Keywords{i,1})==[1,6])
 		if (header.PrimaryData.Keywords{i,1}=='COEFF0')
-		    coeff0=cH.PrimaryData.Keywords{i,2};
+		    coeff0=header.PrimaryData.Keywords{i,2};
 		end
 		if (header.PrimaryData.Keywords{i,1}=='COEFF1')
-		    coeff1=cH.PrimaryData.Keywords{i,2};
+		    coeff1=header.PrimaryData.Keywords{i,2};
 		    
 		end
 	    end
