@@ -21,12 +21,11 @@ end
 
 % extract basic QSO information from Cookse_all_QSO catalog 
 cooksey_all_qso_catalog =  fitsread('/home/reza/gp/c4/Cooksey_c4_cat/c4_catalogs/distfiles/Cooksey_all_QSO.fits', 'binarytable');
-all_QSO_ID                          =  cooksey_all_qso_catalog{1};
-all_zqso                               = cooksey_all_qso_catalog{8};
-all_snrs                                =  cooksey_all_qso_catalog{9};
-bal_visual_flags                  = cooksey_all_qso_catalog{10};
-
-num_quasars = numel(all_zqso);
+all_QSO_ID              =  cooksey_all_qso_catalog{1};
+all_zqso                = cooksey_all_qso_catalog{8};
+all_snrs                =  cooksey_all_qso_catalog{9};
+bal_visual_flags        = cooksey_all_qso_catalog{10};
+num_quasars             = numel(all_zqso);
 
 % because QSO_IDs are cell arrays (character) we need to match them in this
 % way  if(all(all_QSO_ID{1}==c4_QSO_ID{2})==true)
