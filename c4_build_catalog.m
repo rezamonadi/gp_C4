@@ -1,5 +1,5 @@
 
-Cooksey_C4_detected = fitsread('/home/reza/gp_C4/data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
+Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
 c4_QSO_ID = Cooksey_C4_detected{1};
 c4_NCIV = Cooksey_C4_detected{10};
 c4_zCIV = Cooksey_C4_detected{3};
