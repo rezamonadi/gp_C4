@@ -1,16 +1,16 @@
 
-Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_c4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
+Cooksey_C4_detected = fitsread('/home/reza/gp_C4/data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
 c4_QSO_ID = Cooksey_C4_detected{1};
 c4_NCIV = Cooksey_C4_detected{10};
 c4_zCIV = Cooksey_C4_detected{3};
-f = fopen('data/C4_catalogs/Cooksey_c4_cat/los_catalog','w');
+f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/los_catalog','w');
 for i=1:size(c4_zCIV)
     
     fprintf(f,'%s \n', c4_QSO_ID{i});
 
 end
 
-f = fopen('data/C4_catalogs/Cooksey_c4_cat/c4_catalog','w');
+f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/c4_catalog','w');
 
 for i=1:size(c4_zCIV)
     
@@ -20,7 +20,7 @@ end
 % There are some NAN valued c4_NCIV
 
 % extract basic QSO information from Cookse_all_QSO catalog 
-cooksey_all_qso_catalog =  fitsread('/home/reza/gp/c4/Cooksey_c4_cat/c4_catalogs/distfiles/Cooksey_all_QSO.fits', 'binarytable');
+cooksey_all_qso_catalog =  fitsread('data/dr7/distfiles/Cooksey_all_QSO.fits', 'binarytable');
 all_QSO_ID              =  cooksey_all_qso_catalog{1};
 all_zqso                = cooksey_all_qso_catalog{8};
 all_snrs                =  cooksey_all_qso_catalog{9};
