@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 *.fits
 *.fit
+*.csv
+
 
 # C extensions
 *.so

@@ -28,15 +28,15 @@ observed_wavelengths = ...
 % http://www.guavanator.uhh.hawaii.edu/~kcooksey/SDSS/CIV/index.html 
 % go to table: "SDSS spectra of the sightlines surveyed for C IV."
 file_loader = @(mjd, plate, fiber_id) ...
-  (read_spec_dr7(sprintf('Cooksey_c4_cat/spectro/1d_26/%04i/1d/spSpec-%05i-%04i-%03i.fit', plate,  mjd,  plate,  fiber_id)));
-    
+  (read_spec_dr7(sprintf('data/dr7/spectra/%04i/1d/spSpec-%05i-%04i-%03i.fit', plate,  mjd,  plate,  fiber_id)));
+%     /home/reza/gp_C4/data/dr7/spectra/0266/1d/spSpec-51630-0266-053.fit
 %training_release  = 'dr12q';
-training_set_name = 'Cooksey_no_CIV';
+training_set_name = 'Cooskey_all_qso_catalog';
 %train_ind = ...
  %   [' catalog.in_dr9                     & ' ...
   %   '(catalog.filter_flags == 0) ' ];
 
-test_set_name = 'dr7_test';
+% test_set_name = 'dr7_test';
 
 % file loading parameters
 loading_min_lambda = lya_wavelength;          % range of rest wavelengths to load  Å
@@ -69,7 +69,7 @@ minFunc_options =               ...           % optimization options for model f
     struct('MaxIter',     4000, ...
            'MaxFunEvals', 8000);
 
-num_zqso_samples     = 10000;                 % number of parameter samples
+num_C4_samples     = 10000;                 % number of parameter samples
 
 
 % I removed these functions since my code should work without them just in this stage
