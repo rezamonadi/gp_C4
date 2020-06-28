@@ -36,7 +36,7 @@ training_set_name = 'Cooksey_no_CIV';
  %   [' catalog.in_dr9                     & ' ...
   %   '(catalog.filter_flags == 0) ' ];
 
-test_set_name = 'dr7_test';
+% test_set_name = 'dr7_test';
 
 % file loading parameters
 loading_min_lambda = lya_wavelength;          % range of rest wavelengths to load  Å
