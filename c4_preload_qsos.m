@@ -25,38 +25,58 @@ for i=1:num_quasars
     all_plates(i)      = str2double(mpf(7:10));
     all_fiber_ids(i) = str2double(mpf(12:end));
 end
-% 
-% for i = 1:num_quasars
-% %   if (filter_flags(i) > 0)bal
-% %     continue;
-% %   end
-%   if (all_bal_flags(i)>0)
-%     continue;
-%   end
-%   
-%   [this_wavelengths, this_flux, this_noise_variance, this_pixel_mask] ...
-%       = file_loader(all_mjds(i), all_plates(i),all_fiber_ids(i));
-% 
-%   % do not normalize flux: this is done in the learning and processing code.
-% 
-%   ind = (this_wavelengths >= (min_lambda * (z_qso_cut) + 1)) & ...
-%         (this_wavelengths <= (max_lambda * (z_qso_training_max_cut) + 1)) & ...
-%         (~this_pixel_mask);
-% 
-% %   % bit 3: not enough pixels available
-% %   if (nnz(ind) < min_num_pixels)
-% %     filter_flags(i) = bitset(filter_flags(i), 4, true);
-% %     continue;
-% %   end
-% 
-%   all_wavelengths{i}    =    this_wavelengths;%no longer (ind)
-%   all_flux{i}           =           this_flux;
-%   all_noise_variance{i} = this_noise_variance;
-%   all_pixel_mask{i}     =     this_pixel_mask;
-% 
-%   fprintf('loaded quasar %i of %i (%i/%i/%04i)\n', ...
-%           i, num_quasars, all_plates(i), all_mjds(i), all_fiber_ids(i));
-% end
+
+for i = 1:num_quasars
+
+  if (filter_flags(i)~=0)
+    continue;
+  end
+  
+  
+  [this_wavelengths, this_flux, this_noise_variance, this_pixel_mask] ...
+      = file_loader(all_mjds(i), all_plates(i),all_fiber_ids(i));
+
+  % normalize flux
+  
+  ind = (this_wavelengths >= (min_lambda * (z_qso_cut) + 1)) & ...
+        (this_wavelengths <= (max_lambda * (z_qso_training_max_cut) + 1)) & ...
+        (~this_pixel_mask);
+
+  this_median = nanmedian(this_flux(ind));
+  
+  % bit 2: cannot normalize (all normalizing pixels are masked)
+  if (isnan(this_median))
+    filter_flags(i) = bitset(filter_flags(i), 3, true);
+    continue;
+  end
+
+  % bit 3: not enough pixels available
+  if (nnz(ind) < min_num_pixels)
+    filter_flags(i) = bitset(filter_flags(i), 4, true);
+    continue;
+  end
+
+  all_normalizers(i) = this_median;
+
+  this_flux           = this_flux           / this_median;
+  this_noise_variance = this_noise_variance / this_median^2;
+
+  ind = (this_wavelengths >= loading_min_lambda) & ...
+        (this_wavelengths <= loading_max_lambda);
+        
+  % add one pixel on either side
+  available_ind = find(~ind & ~this_pixel_mask);
+  ind(min(available_ind(available_ind > find(ind, 1, 'last' )))) = true;
+  ind(max(available_ind(available_ind < find(ind, 1, 'first')))) = true;
+
+  all_wavelengths{i}    =    this_wavelengths;%no longer (ind)
+  all_flux{i}           =           this_flux;
+  all_noise_variance{i} = this_noise_variance;
+  all_pixel_mask{i}     =     this_pixel_mask;
+
+  fprintf('loaded quasar %i of %i (%i/%i/%04i)\n', ...
+          i, num_quasars, all_plates(i), all_mjds(i), all_fiber_ids(i));
+end
 
 variables_to_save = {'loading_min_lambda', 'loading_max_lambda', ...
                      'normalization_min_lambda', 'normalization_max_lambda', ...

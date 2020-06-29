@@ -28,8 +28,8 @@ releas = 'dr7';
 % http://www.guavanator.uhh.hawaii.edu/~kcooksey/SDSS/CIV/index.html 
 % go to table: "SDSS spectra of the sightlines surveyed for C IV."
 file_loader = @(mjd, plate, fiber_id) ...
-  (read_spec_dr7(sprintf('data/dr7/spectra/%04i/1d/spSpec-%05i-%04i-%03i.fit',  plate,  mjd,  plate,  fiber_id)));
-%     /home/reza/gp_C4/data/dr7/spectra/0266/1d/spSpec-51630-0266-053.fit
+  (read_spec_dr7(sprintf('data/dr7/spectro/1d_26/%04i/1d/spSpec-%05i-%04i-%03i.fit',  plate,  mjd,  plate,  fiber_id)));
+%                      gg= 'data/dr7/spectro/1d_26/0266/1d/spSpec-51630-0266-053.fit';
 training_release  = 'dr7';
 training_set_name = 'Cooskey_all_qso_catalog';
 %train_ind = ...

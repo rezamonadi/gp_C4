@@ -54,14 +54,14 @@ save(sprintf('%s/catalog', processed_directory(release)), ...
 % way  if(all(all_QSO_ID{1}==c4_QSO_ID{2})==true)
 
 
-% % % Maybe in the future we will use them
-% % % to track reasons for filtering out QSOs
-% % filter_flags = zeros(num_quasars, 1, 'uint8');
-% % 
-% % % filtering bit 0: z_QSO < 2.15
-% % ind = (z_qsos < z_qso_cut);
-% % filter_flags(ind) = bitset(filter_flags(ind), 1, true);
-% % 
-% % % filtering bit 1: BAL
-% % ind = (bal_visual_flags);
-% % filter_flags(ind) = bitset(filter_flags(ind), 2, true);
+
+% to track reasons for filtering out QSOs
+filter_flags = zeros(num_quasars, 1, 'uint8');
+% 
+% filtering bit 0: z_QSO < 1.5
+ind = (all_zqso < z_qso_cut);
+filter_flags(ind) = bitset(filter_flags(ind), 1, true);
+ 
+% filtering bit 1: BAL
+ind = (all_bal_flags==12);
+filter_flags(ind) = bitset(filter_flags(ind), 2, true);
