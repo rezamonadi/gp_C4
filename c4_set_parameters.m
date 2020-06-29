@@ -23,14 +23,14 @@ emitted_wavelengths = ...
 observed_wavelengths = ...
     @(emitted_wavelengths,  z) ( emitted_wavelengths * (1 + z));
 
-%release = 'dr12q';
+releas = 'dr7';
 % download Cooksey's dr7 spectra from this page: 
 % http://www.guavanator.uhh.hawaii.edu/~kcooksey/SDSS/CIV/index.html 
 % go to table: "SDSS spectra of the sightlines surveyed for C IV."
 file_loader = @(mjd, plate, fiber_id) ...
-  (read_spec_dr7(sprintf('data/dr7/spectra/%04i/1d/spSpec-%05i-%04i-%03i.fit', plate,  mjd,  plate,  fiber_id)));
+  (read_spec_dr7(sprintf('data/dr7/spectra/%04i/1d/spSpec-%05i-%04i-%03i.fit',  plate,  mjd,  plate,  fiber_id)));
 %     /home/reza/gp_C4/data/dr7/spectra/0266/1d/spSpec-51630-0266-053.fit
-%training_release  = 'dr12q';
+training_release  = 'dr7';
 training_set_name = 'Cooskey_all_qso_catalog';
 %train_ind = ...
  %   [' catalog.in_dr9                     & ' ...
@@ -77,19 +77,19 @@ num_C4_samples     = 10000;                 % number of parameter samples
 
 
 % base directory for all data
-%base_directory = 'data';
+base_directory = 'data';
 
 % utility functions for identifying various directories
-%distfiles_directory = @(release) ...
-  %  sprintf('%s/%s/distfiles', base_directory, release);
+distfiles_directory = @(release) ...
+   sprintf('%s/%s/distfiles', base_directory, release);
 
-%spectra_directory   = @(release) ...
-  % sprintf('%s/%s/spectra',   base_directory, release);
+spectra_directory   = @(release) ...
+  sprintf('%s/%s/spectra',   base_directory, release);
 
-%processed_directory = @(release) ...
- %   sprintf('%s/%s/processed', base_directory, release);
+processed_directory = @(release) ...
+   sprintf('%s/%s/processed', base_directory, release);
 
 % replace with @(varargin) (fprintf(varargin{:})) to show debug statements
 % fprintf_debug = @(varargin) (fprintf(varargin{:}));
-fprintf_debug = @(varargin) ([]);
+% fprintf_debug = @(varargin) ([]);
 
