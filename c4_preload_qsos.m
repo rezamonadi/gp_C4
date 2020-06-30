@@ -35,11 +35,13 @@ for i = 1:num_quasars
   
   [this_wavelengths, this_flux, this_noise_variance, this_pixel_mask] ...
       = file_loader(all_mjds(i), all_plates(i),all_fiber_ids(i));
+      
+  this_rest_wavelengths = emitted_wavelengths(this_wavelengths, all_zqso(i));
 
   % normalize flux
   
-  ind = (this_wavelengths >= (min_lambda * (z_qso_cut) + 1)) & ...
-        (this_wavelengths <= (max_lambda * (z_qso_training_max_cut) + 1)) & ...
+  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+        (this_rest_wavelengths <= normalization_max_lambda) & ...
         (~this_pixel_mask);
 
   this_median = nanmedian(this_flux(ind));
@@ -49,7 +51,11 @@ for i = 1:num_quasars
     filter_flags(i) = bitset(filter_flags(i), 3, true);
     continue;
   end
-
+  
+  ind = (this_rest_wavelengths >= min_lambda) & ...
+        (this_rest_wavelengths <= max_lambda) & ...
+        (~this_pixel_mask);
+        
   % bit 3: not enough pixels available
   if (nnz(ind) < min_num_pixels)
     filter_flags(i) = bitset(filter_flags(i), 4, true);
@@ -60,15 +66,7 @@ for i = 1:num_quasars
 
   this_flux           = this_flux           / this_median;
   this_noise_variance = this_noise_variance / this_median^2;
-
-  ind = (this_wavelengths >= loading_min_lambda) & ...
-        (this_wavelengths <= loading_max_lambda);
-        
-  % add one pixel on either side
-  available_ind = find(~ind & ~this_pixel_mask);
-  ind(min(available_ind(available_ind > find(ind, 1, 'last' )))) = true;
-  ind(max(available_ind(available_ind < find(ind, 1, 'first')))) = true;
-
+ 
   all_wavelengths{i}    =    this_wavelengths;%no longer (ind)
   all_flux{i}           =           this_flux;
   all_noise_variance{i} = this_noise_variance;
