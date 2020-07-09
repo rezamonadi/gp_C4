@@ -23,7 +23,8 @@ emitted_wavelengths = ...
 observed_wavelengths = ...
     @(emitted_wavelengths,  z) ( emitted_wavelengths * (1 + z));
 
-releas = 'dr7';
+release = 'dr7';
+
 % download Cooksey's dr7 spectra from this page: 
 % http://www.guavanator.uhh.hawaii.edu/~kcooksey/SDSS/CIV/index.html 
 % go to table: "SDSS spectra of the sightlines surveyed for C IV."
@@ -69,7 +70,14 @@ minFunc_options =               ...           % optimization options for model f
     struct('MaxIter',     4000, ...
            'MaxFunEvals', 8000);
 
-num_C4_samples     = 10000;                 % number of parameter samples
+% C4 model parameters: parameter samples (for Quasi-Monte Carlo)
+num_C4_samples       = 10000;                  % number of parameter samples
+alpha                = 0.9;                    % weight of KDE component in mixture
+uniform_min_log_nciv = 12.5;                   % range of column density samples    [cm⁻²]
+uniform_max_log_nciv = 15.6;                   % from uniform distribution
+fit_min_log_nciv     = 12.5;                   % range of column density samples    [cm⁻²]
+fit_max_log_nciv     = 15.6;                   % from fit to log PDF
+extrapolate_min_log_nciv = 12.5;               % normalization range for the extrapolated region
 
 
 % I removed these functions since my code should work without them just in this stage
@@ -89,6 +97,10 @@ spectra_directory   = @(release) ...
 processed_directory = @(release) ...
    sprintf('%s/%s/processed', base_directory, release);
 
+c4_catalog_directory = @(name) ...
+   sprintf('%s/C4_catalogs/%s/processed', base_directory, name);
+
+   
 % replace with @(varargin) (fprintf(varargin{:})) to show debug statements
 % fprintf_debug = @(varargin) (fprintf(varargin{:}));
 % fprintf_debug = @(varargin) ([]);
