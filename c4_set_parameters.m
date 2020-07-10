@@ -23,7 +23,7 @@ emitted_wavelengths = ...
 observed_wavelengths = ...
     @(emitted_wavelengths,  z) ( emitted_wavelengths * (1 + z));
 
-releas = 'dr7';
+release = 'dr7';
 % download Cooksey's dr7 spectra from this page: 
 % http://www.guavanator.uhh.hawaii.edu/~kcooksey/SDSS/CIV/index.html 
 % go to table: "SDSS spectra of the sightlines surveyed for C IV."
