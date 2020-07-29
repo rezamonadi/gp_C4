@@ -134,7 +134,7 @@ for i = 1:num_quasars
 
   pca_centered_rest_flux(i, ind) = nanmedian(this_pca_centered_rest_flux);
   
-  % assign meidans to the zeros in the noise_variances
+  % assign a jitter to those zeros in the noise_variances
   ind = rest_noise_variances(i, :) == 0;
   rest_noise_variances(i, ind) = jitter; % brutally assign a jitter value
 end
