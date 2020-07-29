@@ -54,15 +54,16 @@ min_num_pixels = 400;                         % minimum number of non-masked pix
 % normalization parameters
 % I use 1216 is basically because I want integer in my saved filenames%
 %normalization_min_lambda = 1216 - 40;              % range of rest wavelengths to use   Å
-normalization_min_lambda = 1550 - 40; 
+normalization_min_lambda = 1600 - 40; 
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
-normalization_max_lambda = 1550 + 40; 
+normalization_max_lambda = 1600 + 40; 
 % null model parameters
 min_lambda         =  1256;                    % range of rest wavelengths to       Å
-max_lambda         = 3000;                    %   model
+max_lambda         =  1600;                    %   model
 dlambda            = 0.25;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
 max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
+jitter = 1e-6;                                % a small value to avoid noise variance V has zeros
 
 % optimization parameters
 minFunc_options =               ...           % optimization options for model fitting

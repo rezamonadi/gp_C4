@@ -25,7 +25,7 @@ all_noise_variance =       preqsos.all_noise_variance;
 all_noise_variance = all_noise_variance(train_ind, :);
 all_pixel_mask     =           preqsos.all_pixel_mask;
 all_pixel_mask     =     all_pixel_mask(train_ind, :);
-z_qsos             =        catalog.z_qsos(train_ind);
+z_qsos             =        catalog.all_zqso(train_ind);
 clear preqsos
 
 num_quasars = numel(z_qsos);
@@ -133,6 +133,10 @@ for i = 1:num_quasars
   ind = isnan(this_pca_centered_rest_flux);
 
   pca_centered_rest_flux(i, ind) = nanmedian(this_pca_centered_rest_flux);
+  
+  % assign meidans to the zeros in the noise_variances
+  ind = rest_noise_variances(i, :) == 0;
+  rest_noise_variances(i, ind) = jitter; % brutally assign a jitter value
 end
 
 % get top-k PCA vectors to initialize M
