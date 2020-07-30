@@ -16,7 +16,7 @@ end
 
 % There are some NAN valued c4_NCIV
 % extract basic QSO information from Cookse_all_QSO catalog 
-cooksey_all_qso_catalog = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_all_QSO.fits', 'binarytable');
+cooksey_all_qso_catalog = fitsread('data/dr7/distfiles/Cooksey_all_QSO.fits', 'binarytable');
 all_QSO_ID              = cooksey_all_qso_catalog{1};
 all_RAh                 = cooksey_all_qso_catalog{2};
 all_RAm                 = cooksey_all_qso_catalog{3};

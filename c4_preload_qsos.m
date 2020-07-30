@@ -20,7 +20,7 @@ all_plates    = zeros(num_quasars,1);
 all_mjds      = zeros(num_quasars,1);
 all_fiber_ids = zeros(num_quasars,1);
 for i=1:num_quasars
-    mpf = all_QSO_ID{i};
+    mpf = all_QSO_ID{i}; % mpf is the string id of qso MJD-Plate-FiberID
     all_mjds(i) = str2double(mpf(1:5));
     all_plates(i)      = str2double(mpf(7:10));
     all_fiber_ids(i) = str2double(mpf(12:end));
@@ -35,6 +35,8 @@ for i = 1:num_quasars
   
   [this_wavelengths, this_flux, this_noise_variance, this_pixel_mask] ...
       = file_loader(all_mjds(i), all_plates(i),all_fiber_ids(i));
+	% Here file_loader uses dr7 spectrum reader function and given mpf to read
+	% spectrum 
       
   this_rest_wavelengths = emitted_wavelengths(this_wavelengths, all_zqso(i));
 

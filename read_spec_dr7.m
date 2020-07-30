@@ -23,10 +23,12 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 	% the Primary table contains spectra
 
 	% acquire un-continuum subtracted spectrum
+	noise = measurements(3,:);
+	
 	flux = measurements(1,:);
 
 	% noise (standard deviation)
-	noise = measurements(3,:);
+
 	noise_ratio = noise./flux;
 	noise_variance = noise.^2;
 	% mask array
@@ -53,5 +55,5 @@ function [wavelengths, flux, noise_variance, pixel_mask] = read_spec_dr7(filenam
 
 	wavelengths = 10.^(linspace(coeff0, coeff0 + coeff1*(length + 1), length));
 	
-	pixel_mask =  (noise_ratio>=2) | (and_mask==hex2dec('0x800000')); 
+	pixel_mask =  (noise_ratio>=2) | (and_mask==hex2dec('0x800000')) | (noise == 0); 
 end

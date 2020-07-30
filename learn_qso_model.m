@@ -25,7 +25,7 @@ all_noise_variance =       preqsos.all_noise_variance;
 all_noise_variance = all_noise_variance(train_ind, :);
 all_pixel_mask     =           preqsos.all_pixel_mask;
 all_pixel_mask     =     all_pixel_mask(train_ind, :);
-z_qsos             =        catalog.z_qsos(train_ind);
+z_qsos             =        catalog.all_zqso(train_ind);
 clear preqsos
 
 num_quasars = numel(z_qsos);
@@ -142,7 +142,6 @@ end
         'rows',          'complete');
 % initialize A to top-k PCA components of non-DLA-containing spectra
 initial_M = bsxfun(@times, coefficients(:, 1:k), sqrt(latent(1:k))');
-
 objective_function = @(x) objective(x, centered_rest_fluxes, rest_noise_variances);
 
 % maximize likelihood via L-BFGS

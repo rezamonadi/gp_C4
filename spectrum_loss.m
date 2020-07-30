@@ -26,6 +26,7 @@ function [nlog_p, dM] = ...
 
   B = M' * D_inv_M;
   B(1:(k + 1):end) = B(1:(k + 1):end) + 1;
+  
   L = chol(B);
   % C = B⁻¹MᵀD⁻¹
   C = L \ (L' \ D_inv_M');

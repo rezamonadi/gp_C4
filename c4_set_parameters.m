@@ -58,16 +58,16 @@ normalization_min_lambda = 1550 - 40;
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
 normalization_max_lambda = 1550 + 40; 
 % null model parameters
-min_lambda         =  1256;                    % range of rest wavelengths to       Å
-max_lambda         = 3000;                    %   model
+min_lambda         =  1400;                    % range of rest wavelengths to       Å
+max_lambda         = 1550;                    %   model
 dlambda            = 0.25;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
 max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
 
 % optimization parameters
 minFunc_options =               ...           % optimization options for model fitting
-    struct('MaxIter',     4000, ...
-           'MaxFunEvals', 8000);
+    struct('MaxIter',     10000, ...
+           'MaxFunEvals', 10000);
 
 num_C4_samples     = 10000;                 % number of parameter samples
 
