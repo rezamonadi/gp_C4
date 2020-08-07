@@ -54,11 +54,11 @@ min_num_pixels = 400;                         % minimum number of non-masked pix
 % normalization parameters
 % I use 1216 is basically because I want integer in my saved filenames%
 %normalization_min_lambda = 1216 - 40;              % range of rest wavelengths to use   Å
-normalization_min_lambda = 1550 - 40; 
+normalization_min_lambda = 1310; 
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
-normalization_max_lambda = 1550 + 40; 
+normalization_max_lambda = 1325; 
 % null model parameters
-min_lambda         =  1400;                    % range of rest wavelengths to       Å
+min_lambda         =  1410;                    % range of rest wavelengths to       Å
 max_lambda         = 1550;                    %   model
 dlambda            = 0.25;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
@@ -72,8 +72,8 @@ minFunc_options =               ...           % optimization options for model f
 % C4 model parameters: parameter samples (for Quasi-Monte Carlo)
 num_C4_samples       = 10000;                  % number of parameter samples
 alpha                = 0.9;                    % weight of KDE component in mixture
-uniform_min_log_nciv = 12.5;                   % range of column density samples    [cm⁻²]
-uniform_max_log_nciv = 15.6;                   % from uniform distribution
+uniform_min_log_nciv = 12.88;                   % range of column density samples    [cm⁻²]
+uniform_max_log_nciv = 15.5;                   % from uniform distribution
 fit_min_log_nciv     = 12.5;                   % range of column density samples    [cm⁻²]
 fit_max_log_nciv     = 15.6;                   % from fit to log PDF
 extrapolate_min_log_nciv = 12.5;               % normalization range for the extrapolated region
