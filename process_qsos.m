@@ -9,7 +9,7 @@ if (ischar(prior_ind))
 end
 
 prior.z_qsos  = prior_catalog.z_qsos(prior_ind);
-prior.dla_ind = prior_catalog.dla_inds(dla_catalog_name);
+prior.c4_ind = prior_catalog.c4_inds(c4_catalog_name);
 prior.dla_ind = prior.dla_ind(prior_ind);
 
 % filter out DLAs from prior catalog corresponding to region of spectrum below

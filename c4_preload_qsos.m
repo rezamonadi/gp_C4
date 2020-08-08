@@ -28,6 +28,7 @@ end
 
 for i = 1:num_quasars
 
+
   if (filter_flags(i)~=0)
     continue;
   end
@@ -84,8 +85,8 @@ variables_to_save = {'loading_min_lambda', 'loading_max_lambda', ...
                      'all_noise_variance', 'all_pixel_mask', ...
                      'all_normalizers'};
 save(sprintf('%s/preloaded_qsos', processed_directory(release)), ...
-     variables_to_save{:}, '-v7.3');
+     variables_to_save{:});
 
 % write new filter flags to catalog
-save(sprintf('%s/catalog', processed_directory(release)), ...
-     'filter_flags', '-append');
+save(sprintf('%s/filter_flags', processed_directory(release)), ...
+     'filter_flags');
