@@ -12,7 +12,8 @@ lya_wavelength = 1215.6701;                   % Lyman alpha transition wavelengt
 lyb_wavelength = 1025.7223;                   % Lyman beta  transition wavelength  Å
 lyman_limit    =  911.7633;                   % Lyman limit wavelength             Å
 speed_of_light = 299792458;                   % speed of light                     m s⁻¹
-
+civ_1_wavelength = 1548.2049;
+civ_2_wavelength =  1550.77845;
 % converts relative velocity in km s^-1 to redshift difference
 kms_to_z = @(kms) (kms * 1000) / speed_of_light;
 
@@ -77,11 +78,26 @@ uniform_max_log_nciv = 15.5;                   % from uniform distribution
 fit_min_log_nciv     = 12.5;                   % range of column density samples    [cm⁻²]
 fit_max_log_nciv     = 15.6;                   % from fit to log PDF
 extrapolate_min_log_nciv = 12.5;               % normalization range for the extrapolated region
+% model prior parameters
 
+prior_z_qso_increase = kms_to_z(30000);       % use QSOs with z < (z_QSO + x) for prior
 
-% I removed these functions since my code should work without them just in this stage
-% maybe add them later in the final version
+% instrumental broadening parameters
+width = 3;                                    % width of Gaussian broadening (# pixels)
+pixel_spacing = 1e-4;                         % wavelength spacing of pixels in dex
 
+% DLA model parameters: absorber range and model
+num_lines = 2;                                % number of members of CIV series to use
+
+max_z_cut = kms_to_z(3000);                   % max z_DLA = z_QSO - max_z_cut
+max_z_c4 = @(wavelengths, z_qso) ...         % determines maximum z_DLA to search
+    (max(wavelengths) / civ_2_wavelength - 1) - max_z_cut;
+
+min_z_cut = kms_to_z(3000);                   % min z_DLA = z_Ly∞ + min_z_cut
+min_z_c4 = @(wavelengths, z_qso) ...         % determines minimum z_DLA to search
+    max(min(wavelengths) / civ_2_wavelength - 1,                          ...
+        observed_wavelengths(civ_1_wavelength, z_qso) / 1410 - 1 + ...
+        min_z_cut);
 
 % base directory for all data
 base_directory = 'data';
