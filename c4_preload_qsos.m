@@ -70,10 +70,10 @@ for i = 1:num_quasars
   this_flux           = this_flux           / this_median;
   this_noise_variance = this_noise_variance / this_median^2;
  
-  all_wavelengths{i,1}    =    this_wavelengths;%no longer (ind)
-  all_flux{i,1}           =           this_flux;
-  all_noise_variance{i,1} = this_noise_variance;
-  all_pixel_mask{i,1}     =     this_pixel_mask;
+  all_wavelengths{i}    =    this_wavelengths;%no longer (ind)
+  all_flux{i}           =           this_flux;
+  all_noise_variance{i} = this_noise_variance;
+  all_pixel_mask{i}     =     this_pixel_mask;
 
   fprintf('loaded quasar %i of %i (%i/%i/%04i)\n', ...
           i, num_quasars, all_plates(i), all_mjds(i), all_fiber_ids(i));

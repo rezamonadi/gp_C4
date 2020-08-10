@@ -87,7 +87,7 @@ width = 3;                                    % width of Gaussian broadening (# 
 pixel_spacing = 1e-4;                         % wavelength spacing of pixels in dex
 
 % DLA model parameters: absorber range and model
-num_lines = 3;                                % number of members of the Lyman series to use
+num_lines = 2;                                % number of members of CIV series to use
 
 max_z_cut = kms_to_z(3000);                   % max z_DLA = z_QSO - max_z_cut
 max_z_c4 = @(wavelengths, z_qso) ...         % determines maximum z_DLA to search
@@ -96,7 +96,7 @@ max_z_c4 = @(wavelengths, z_qso) ...         % determines maximum z_DLA to searc
 min_z_cut = kms_to_z(3000);                   % min z_DLA = z_Ly∞ + min_z_cut
 min_z_c4 = @(wavelengths, z_qso) ...         % determines minimum z_DLA to search
     max(min(wavelengths) / civ_2_wavelength - 1,                          ...
-        observed_wavelengths(civ_1_wavelength, z_qso) / civ_2_wavelength - 1 + ...
+        observed_wavelengths(civ_1_wavelength, z_qso) / 1410 - 1 + ...
         min_z_cut);
 
 % base directory for all data
