@@ -35,8 +35,8 @@ training_release  = 'dr7';
 training_set_name = 'Cooskey_all_qso_catalog';
 
 % file loading parameters
-loading_min_lambda = 1200;          % range of rest wavelengths to load  Å
-loading_max_lambda = 1700;                    
+loading_min_lambda = 1216;          % range of rest wavelengths to load  Å
+loading_max_lambda = 1600;                    
 % The maximum allowed is set so that even if the peak is redshifted off the end, the
 % quasar still has data in the range
 
@@ -68,11 +68,11 @@ minFunc_options =               ...           % optimization options for model f
 % C4 model parameters: parameter samples (for Quasi-Monte Carlo)
 num_C4_samples       = 10000;                  % number of parameter samples
 alpha                = 0.9;                    % weight of KDE component in mixture
-uniform_min_log_nciv = 12.88;                   % range of column density samples    [cm⁻²]
-uniform_max_log_nciv = 15.5;                   % from uniform distribution
-fit_min_log_nciv     = 12.5;                   % range of column density samples    [cm⁻²]
-fit_max_log_nciv     = 20.0;                   % from fit to log PDF
-%extrapolate_min_log_nciv = 12.5;               % normalization range for the extrapolated region
+uniform_min_log_nciv = 12.5;                   % range of column density samples    [cm⁻²]
+uniform_max_log_nciv = 17;                   % from uniform distribution
+fit_min_log_nciv     = 12.88;                   % range of column density samples    [cm⁻²]
+fit_max_log_nciv     = 15.5;                   % from fit to log PDF
+extrapolate_min_log_nciv = 12.9;               % normalization range for the extrapolated region
 % model prior parameters
 
 prior_z_qso_increase = kms_to_z(30000);       % use QSOs with z < (z_QSO + x) for prior

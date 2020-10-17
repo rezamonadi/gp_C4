@@ -27,6 +27,7 @@ function log_p = log_mvnpdf_low_rank(y, mu, M, d)
 
   B = M' * D_inv_M;
   B(1:(k + 1):end) = B(1:(k + 1):end) + 1;
+  
   L = chol(B);
   % C = B^-1 M' D^-1
   C = L \ (L' \ D_inv_M');
