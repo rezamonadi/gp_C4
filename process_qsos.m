@@ -1,31 +1,33 @@
 % process_qsos: run DLA detection algorithm on specified objects
 
 % load redshifts/DLA flags from training release
-prior_catalog = ...
+Full_catalog = ...
     load(sprintf('%s/catalog', processed_directory(training_release)));
 
 if (ischar(prior_ind))
   prior_ind = eval(prior_ind);
 end
 
-prior.z_qsos  = prior_catalog.all_zqso(prior_ind);
-prior.c4_ind = c4_inds;
-%prior.c4_ind = prior.c4_ind(prior_ind);
+prior.z_qsos  = Full_catalog.all_zqso(prior_ind);
+prior.c4_ind = prior_ind;
 
-% % Not relevenat for CIV absorpyion (I think)
-% % filter out DLAs from prior catalog corresponding to region of spectrum below
-% % Ly∞ QSO rest
-% prior.z_dlas = prior_catalog.z_dlas(dla_catalog_name);
-% prior.z_dlas = prior.z_dlas(prior_ind);
-% 
-% for i = find(prior.dla_ind)'
-%   if (observed_wavelengths(lya_wavelength, prior.z_dlas{i}) < ...
-%       observed_wavelengths(lyman_limit,    prior.z_qsos(i)))
-%     prior.dla_ind(i) = false;
-%   end
-% end
 
-% prior = rmfield(prior, 'z_dlas');
+% My prior_ind here is already those OK sight of lines that have CIV
+
+
+% filter out CIVs from prior catalog corresponding to region of spectrum below
+% Ly-alpha QSO rest
+
+prior.z_c4 = Full_catalog.all_z_c4(prior_ind);
+
+for i = find(prior.dla_ind)'
+  if (observed_wavelengths(lya_wavelength, prior.z_dlas{i}) < ...
+      observed_wavelengths(lyman_limit,    prior.z_qsos(i)))
+    prior.c4_ind(i) = false;
+  end
+end
+
+prior = rmfield(prior, 'z_c4');
 
 % load QSO model from training release
 variables_to_load = {'rest_wavelengths', 'mu', 'M'};
@@ -57,7 +59,7 @@ all_pixel_mask     =     all_pixel_mask(test_ind);
 
 z_qsos = catalog.all_zqso(test_ind);
 
-num_quasars = numel(all_zqso);
+num_quasars = numel(z_qsos);
 
 % preprocess model interpolants
 mu_interpolator = ...
