@@ -21,7 +21,7 @@ prior.c4_ind = prior_ind;
 prior.z_c4 = Full_catalog.all_z_c4(prior_ind);
 
 for i = find(prior.c4_ind)'
-  if (observed_wavelengths(civ_1548_wavelength , prior.z_c4{i}) < ...
+  if (observed_wavelengths(civ_1548_wavelength , prior.z_c4(i)) < ...
       observed_wavelengths(lya_wavelength, prior.z_qsos(i)))
     prior.c4_ind(i) = false;
   end
