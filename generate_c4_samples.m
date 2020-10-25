@@ -45,7 +45,8 @@ fprintf('Solved roots( df/dN ) : %d\n', turning_log_nciv);
 unnormalized_pdf = ...
      @(nciv) ( exp(polyval(f,  nciv))              .*      heaviside( nciv - turning_log_nciv ) ...
            +   exp(polyval(f,  turning_log_nciv))  .* (1 - heaviside( nciv - turning_log_nciv )) );
-Z = integral(unnormalized_pdf, extrapolate_min_log_nciv, 16); % integrate until 16 to get the tail region
+Z = integral(unnormalized_pdf, extrapolate_min_log_nciv, 16); 
+% integrate until 16 to get the tail region
 
 % create the PDF of the mixture between the unifrom distribution and
 % the distribution fit to the data

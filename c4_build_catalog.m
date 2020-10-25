@@ -1,7 +1,8 @@
 
+
 Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
 c4_QSO_ID           = Cooksey_C4_detected{1};
-c4_N             = Cooksey_C4_detected{10};
+c4_NCIV             = Cooksey_C4_detected{10};
 c4_z             = Cooksey_C4_detected{3};
 
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/los_catalog','w');
@@ -11,7 +12,7 @@ end
 
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/c4_catalog','w');
 for i=1:size(c4_z)
-      fprintf(f,'%s  %f %f\n', c4_QSO_ID{i}, c4_z(i), c4_N(i));
+      fprintf(f,'%s  %f %f\n', c4_QSO_ID{i}, c4_z(i), c4_NCIV(i));
 end
 
 % There are some NAN valued c4_NCIV
@@ -43,6 +44,7 @@ for i=1:numel(all_DEC_Sign_d)
             all_DEC_s(i)./3600;
     end
 end
+
 all_z_c4 = zeros(num_quasars,1);
 all_z_c4 = all_z_c4 -1;
 %  adding a cloumn for c4 col density if there is a c4 for a sight line
@@ -56,9 +58,6 @@ for i=1:num_quasars
     end
     
 end
-
-
-
 
 
 % save catalog 

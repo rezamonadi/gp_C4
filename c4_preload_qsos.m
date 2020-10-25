@@ -3,6 +3,7 @@
 % and truncation to the region of interest
 
 % load QSO catalog
+tic;
 variables_to_load = {'all_QSO_ID','all_zqso', 'all_bal_flags'};
 load(sprintf('%s/catalog', processed_directory(release)), ...
     variables_to_load{:});
@@ -90,3 +91,4 @@ save(sprintf('%s/preloaded_qsos', processed_directory(release)), ...
 % write new filter flags to catalog
 save(sprintf('%s/filter_flags', processed_directory(release)), ...
      'filter_flags');
+toc;

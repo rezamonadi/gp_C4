@@ -1,6 +1,6 @@
 % process_qsos: run DLA detection algorithm on specified objects
 
-% load redshifts/DLA flags from training release
+% load C4 catalog
 Full_catalog = ...
     load(sprintf('%s/catalog', processed_directory(training_release)));
 
@@ -10,8 +10,6 @@ end
 
 prior.z_qsos  = Full_catalog.all_zqso(prior_ind);
 prior.c4_ind = prior_ind;
-
-
 % My prior_ind here is already those OK sight of lines that have CIV
 
 
@@ -20,7 +18,7 @@ prior.c4_ind = prior_ind;
 
 prior.z_c4 = Full_catalog.all_z_c4(prior_ind);
 
-for i = find(prior.c4_ind)'
+for i = size(prior.z_c4)
   if (observed_wavelengths(civ_1548_wavelength , prior.z_c4(i)) < ...
       observed_wavelengths(lya_wavelength, prior.z_qsos(i)))
     prior.c4_ind(i) = false;
@@ -31,7 +29,7 @@ prior = rmfield(prior, 'z_c4');
 
 % load QSO model from training release
 variables_to_load = {'rest_wavelengths', 'mu', 'M'};
-load('data/dr7/processed/learned_model_Cooskey_all_qso_catalog_norm_1510-1590',variables_to_load{:});
+load('data/dr7/processed/learned_model_Cooskey_all_qso_catalog_norm_1310-1325.mat',variables_to_load{:});
 
 % load DLA samples from training release
 variables_to_load = {'offset_samples', 'log_nciv_samples', 'nciv_samples'};
@@ -144,7 +142,7 @@ for quasar_ind = 1:num_quasars
   fprintf('\n');
   fprintf(' ...     p(   CIV | z_QSO)  mvn      : %0.3f\n',     this_p_c4);
   fprintf(' ...     p(no CIV | z_QSO)        : %0.3f\n', 1 - this_p_c4);
-
+  
   % interpolate model onto given wavelengths
   this_mu = mu_interpolator( this_rest_wavelengths);
   this_M  =  M_interpolator({this_rest_wavelengths, 1:k});
@@ -222,10 +220,13 @@ for quasar_ind = 1:num_quasars
   log_posteriors_c4(quasar_ind) = ...
       log_priors_c4(quasar_ind) + log_likelihoods_c4(quasar_ind);
 
-  fprintf(' ... log p(D | z_QSO,    DLA)     : %0.2f\n', ...
+  fprintf(' ... log p(D | z_QSO,    CIV)     : %0.2f\n', ...
                 log_likelihoods_c4(quasar_ind));
-  fprintf(' ... log p(DLA | D, z_QSO)        : %0.2f\n', ...
+  fprintf(' ... log p(CIV | D, z_QSO)        : %0.2f\n', ...
                 log_posteriors_c4(quasar_ind));
+  % fprintf(' ... Num_CIV                      : %d\n ', ... 
+  %               Full_catalog.all_Num_c4_sys(quasar_ind))
+  % % fprintf('... FilterFlag                    : %d\n ', filter)
   fprintf(' took %0.3fs.\n', toc);
 end
 
