@@ -10,6 +10,7 @@
 %   g(x) = ∂f/∂x
 
 function [f, g] = objective(x, centered_rest_fluxes, rest_noise_variances)
+    
 
   [num_quasars, num_pixels] = size(centered_rest_fluxes);
 

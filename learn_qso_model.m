@@ -3,12 +3,12 @@
 rng('default');
 
 % load catalog
-catalog = load(sprintf('%s/zqso_only_catalog', processed_directory(training_release)));
+catalog = load(sprintf('%s/catalog', processed_directory(training_release)));
 
 % load preprocessed QSOs
 variables_to_load = {'all_wavelengths', 'all_flux', 'all_noise_variance', ...
                      'all_pixel_mask'};
-preqsos = matfile(sprintf('%s/preloaded_zqso_only_qsos.mat', processed_directory(training_release)));
+preqsos = matfile(sprintf('%s/preloaded_qsos.mat', processed_directory(training_release)));
 
 % determine which spectra to use for training; allow string value for
 % train_ind
@@ -25,7 +25,7 @@ all_noise_variance =       preqsos.all_noise_variance;
 all_noise_variance = all_noise_variance(train_ind, :);
 all_pixel_mask     =           preqsos.all_pixel_mask;
 all_pixel_mask     =     all_pixel_mask(train_ind, :);
-z_qsos             =        catalog.z_qsos(train_ind);
+z_qsos             =        catalog.all_zqso(train_ind);
 clear preqsos
 
 num_quasars = numel(z_qsos);
@@ -39,7 +39,7 @@ rest_noise_variances = nan(num_quasars, num_rest_pixels);
 % the preload_qsos should fliter out empty spectra;
 % this line is to prevent there is any empty spectra
 % in preloaded_qsos.mat for some reason
-is_empty             = false(num_quasars, 1);
+% is_empty             = false(num_quasars, 1);
 
 % interpolate quasars onto chosen rest wavelength grid
 for i = 1:num_quasars
@@ -56,55 +56,35 @@ for i = 1:num_quasars
   this_noise_variance(this_pixel_mask) = nan;
 
   fprintf('processing quasar %i with lambda_size = %i %i ...\n', i, size(this_wavelengths))
-  
-  if all(size(this_wavelengths) == [0 0])
-    is_empty(i, 1) = 1;
-    continue;
-  end
+%   
+%   if all(size(this_wavelengths) == [0 0])
+%     is_empty(i, 1) = 1;
+%     continue;
+%   end
 
   rest_fluxes(i, :) = ...
       interp1(this_rest_wavelengths, this_flux,           rest_wavelengths);
 
-  %normalizing here
-  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
-        (this_rest_wavelengths <= normalization_max_lambda) & ...
-        (~this_pixel_mask);
-
-  this_median = nanmedian(this_flux(ind));
-  rest_fluxes(i, :) = rest_fluxes(i, :) / this_median;
-
+%   %normalizing here
+%   ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+%         (this_rest_wavelengths <= normalization_max_lambda) & ...
+%         (~this_pixel_mask);
+% 
+%   this_median = nanmedian(this_flux(ind));
+%   rest_fluxes(i, :) = rest_fluxes(i, :) / this_median;
+% 
   rest_noise_variances(i, :) = ...
       interp1(this_rest_wavelengths, this_noise_variance, rest_wavelengths);
-  rest_noise_variances(i, :) = rest_noise_variances(i, :) / this_median .^ 2;  %setting up bluward/redwards of restframe txt files
-
-  % normalise the data we put into end model fitting
-  this_norm_flux           = this_flux / this_median;
-  this_norm_noise_variance = this_noise_variance / this_median .^ 2;
-
-  bluewards_flux{i} = this_norm_flux(this_rest_wavelengths < min_lambda & ~this_pixel_mask);
-  bluewards_nv{i}   = this_norm_noise_variance(this_rest_wavelengths < min_lambda & ~this_pixel_mask);
-  redwards_flux{i}  = this_norm_flux(this_rest_wavelengths > max_lambda & ~this_pixel_mask);
-  redwards_nv{i}    = this_norm_noise_variance(this_rest_wavelengths > max_lambda & ~this_pixel_mask);
+%   rest_noise_variances(i, :) = rest_noise_variances(i, :) / this_median .^ 2;
 end
-bluewards_flux = cell2mat(bluewards_flux);
-bluewards_nv = cell2mat(bluewards_nv);
-redwards_flux = cell2mat(redwards_flux);
-redwards_nv = cell2mat(redwards_nv);
-
-addpath('./offrestfit');
-
-[bluewards_mu, bluewards_sigma] = fitendmodel(bluewards_flux, bluewards_nv);
-[redwards_mu, redwards_sigma] = fitendmodel(redwards_flux, redwards_nv);
-
 clear('all_wavelengths', 'all_flux', 'all_noise_variance', 'all_pixel_mask');
-clear('bluewards_flux', 'bluewards_nv', 'redwards_flux', 'redwards_nv');
 
-% filter out empty spectra
-% note: if you've done this in preload_qsos then skip these lines
-z_qsos               = z_qsos(~is_empty);
-rest_fluxes          = rest_fluxes(~is_empty, :);
-rest_noise_variances = rest_noise_variances(~is_empty, :);
-
+% % % filter out empty spectra
+% % % note: if you've done this in preload_qsos then skip these lines
+% % z_qsos               = z_qsos(~is_empty);
+% % rest_fluxes          = rest_fluxes(~is_empty, :);
+% % rest_noise_variances = rest_noise_variances(~is_empty, :);
+% 
 % update num_quasars in consideration
 num_quasars = numel(z_qsos);
 
@@ -162,7 +142,6 @@ end
         'rows',          'complete');
 % initialize A to top-k PCA components of non-DLA-containing spectra
 initial_M = bsxfun(@times, coefficients(:, 1:k), sqrt(latent(1:k))');
-
 objective_function = @(x) objective(x, centered_rest_fluxes, rest_noise_variances);
 
 % maximize likelihood via L-BFGS
@@ -175,10 +154,9 @@ M = reshape(x(ind), [num_rest_pixels, k]);
 variables_to_save = {'training_release', 'train_ind', 'max_noise_variance', ...
                      'minFunc_options', 'rest_wavelengths', 'mu', ...
                      'initial_M', 'M',  'log_likelihood', ...
-                     'minFunc_output', 'bluewards_mu', 'bluewards_sigma', ...
-                     'redwards_mu', 'redwards_sigma'};
+                     'minFunc_output'};
 
-save(sprintf('%s/learned_zqso_only_model_outdata_normout_%s_norm_%d-%d',             ...
+save(sprintf('%s/learned_model_%s_norm_%d-%d',             ...
              processed_directory(training_release), ...
              training_set_name, ...
 	     normalization_min_lambda, normalization_max_lambda), ...
