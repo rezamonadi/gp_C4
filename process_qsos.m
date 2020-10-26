@@ -103,17 +103,10 @@ for quasar_ind = 1:num_quasars
   % convert to QSO rest frame
   this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qso);
 
-  ind = (this_rest_wavelengths >= min_lambda) & ...
-        (this_rest_wavelengths <= max_lambda);
-
+  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
+                 (this_rest_wavelengths <= max_lambda);
   % keep complete copy of equally spaced wavelengths for absorption
   % computation
-  this_unmasked_wavelengths = this_wavelengths(ind);
-	
-	
-  %ind = ind & (~this_pixel_mask);
-  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
-      (this_rest_wavelengths <= max_lambda);
   this_unmasked_wavelengths = this_wavelengths(unmasked_ind);
 
   % [mask_ind] remove flux pixels with pixel_mask; pixel_mask is defined
