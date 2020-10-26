@@ -26,6 +26,7 @@ from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import numpy as np
 M = loadmat("MM-0.5-1350-1570.mat")                                                                                   
+# M = loadmat("MM-70%-1350-1570.mat")                                                                                   
 C = build_correlation_matrix(M["MM"])    
 min_lambda = 1216
 max_lambda = 1600
@@ -37,4 +38,5 @@ locs, labels= plt.xticks()
 # print(new_labels)
 # x_ticks=[]
 # plt.xticks(locs, new_labels)
-plt.show()
+plt.savefig('MM-0.5-1350-1600.png')
+# plt.savefig('MM-70%-1350-1600.png')

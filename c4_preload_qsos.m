@@ -71,6 +71,11 @@ for i = 1:num_quasars
   this_flux           = this_flux           / this_median;
   this_noise_variance = this_noise_variance / this_median^2;
  
+  % add one pixel on either side
+  available_ind = find(~ind & ~this_pixel_mask);
+  ind(min(available_ind(available_ind > find(ind, 1, 'last' )))) = true;
+  ind(max(available_ind(available_ind < find(ind, 1, 'first')))) = true;
+
   all_wavelengths{i}    =    this_wavelengths(ind);%no longer (ind)
   all_flux{i}           =           this_flux(ind);
   all_noise_variance{i} = this_noise_variance(ind);

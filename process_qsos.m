@@ -103,21 +103,16 @@ for quasar_ind = 1:num_quasars
   % convert to QSO rest frame
   this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qso);
 
-  ind = (this_rest_wavelengths >= min_lambda) & ...
-        (this_rest_wavelengths <= max_lambda);
-
+  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
+                 (this_rest_wavelengths <= max_lambda);
   % keep complete copy of equally spaced wavelengths for absorption
   % computation
-  this_unmasked_wavelengths = this_wavelengths(ind);
-	
-	
-  %ind = ind & (~this_pixel_mask);
-  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
-      (this_rest_wavelengths <= max_lambda);
   this_unmasked_wavelengths = this_wavelengths(unmasked_ind);
+
+  % [mask_ind] remove flux pixels with pixel_mask; pixel_mask is defined
+  % in read_spec_dr7.m
   ind = unmasked_ind & (~this_pixel_mask);
-  ind = (~this_pixel_mask(unmasked_ind)); 
-  
+
   this_wavelengths      =      this_wavelengths(ind);
   this_rest_wavelengths = this_rest_wavelengths(ind);
   this_flux             =             this_flux(ind);
@@ -187,8 +182,10 @@ for quasar_ind = 1:num_quasars
                 width)'                                                        ...
       ];
 
-  % to retain only unmasked pixels from computed absorption profile
-  ind = (~this_pixel_mask(ind));
+  % [mask_ind] to retain only unmasked pixels from computed absorption profile
+  % this has to be done by using the unmasked_ind which has not yet
+  % been applied this_pixel_mask.
+  ind = (~this_pixel_mask(unmasked_ind));
 
   % compute probabilities under DLA model for each of the sampled
   % (normalized offset, log(N HI)) pairs

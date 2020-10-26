@@ -4,7 +4,7 @@ Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cookse
 c4_QSO_ID           = Cooksey_C4_detected{1};
 c4_NCIV             = Cooksey_C4_detected{10};
 c4_z             = Cooksey_C4_detected{3};
-
+c4_num           = Cooksey_C4_detected{13};
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/los_catalog','w');
 for i=1:size(c4_z)
     fprintf(f,'%s \n', c4_QSO_ID{i});

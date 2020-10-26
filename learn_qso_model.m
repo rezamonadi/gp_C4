@@ -7,7 +7,7 @@ catalog = load(sprintf('%s/catalog', processed_directory(training_release)));
 
 % load preprocessed QSOs
 variables_to_load = {'all_wavelengths', 'all_flux', 'all_noise_variance', ...
-                     'all_pixel_mask'};
+                     'all_pixel_mask', 'all_num_c4'};
 preqsos = matfile(sprintf('%s/preloaded_qsos.mat', processed_directory(training_release)));
 
 % determine which spectra to use for training; allow string value for
@@ -39,7 +39,7 @@ rest_noise_variances = nan(num_quasars, num_rest_pixels);
 % the preload_qsos should fliter out empty spectra;
 % this line is to prevent there is any empty spectra
 % in preloaded_qsos.mat for some reason
-% is_empty             = false(num_quasars, 1);
+is_empty             = false(num_quasars, 1);
 
 % interpolate quasars onto chosen rest wavelength grid
 for i = 1:num_quasars
@@ -56,34 +56,34 @@ for i = 1:num_quasars
   this_noise_variance(this_pixel_mask) = nan;
 
   fprintf('processing quasar %i with lambda_size = %i %i ...\n', i, size(this_wavelengths))
-%   
-%   if all(size(this_wavelengths) == [0 0])
-%     is_empty(i, 1) = 1;
-%     continue;
-%   end
+  
+  if all(size(this_wavelengths) == [0 0])
+    is_empty(i, 1) = 1;
+    continue;
+  end
 
   rest_fluxes(i, :) = ...
       interp1(this_rest_wavelengths, this_flux,           rest_wavelengths);
 
-%   %normalizing here
-%   ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
-%         (this_rest_wavelengths <= normalization_max_lambda) & ...
-%         (~this_pixel_mask);
-% 
+  %normalizing here
+  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+        (this_rest_wavelengths <= normalization_max_lambda) & ...
+        (~this_pixel_mask);
+
 %   this_median = nanmedian(this_flux(ind));
 %   rest_fluxes(i, :) = rest_fluxes(i, :) / this_median;
-% 
+
   rest_noise_variances(i, :) = ...
       interp1(this_rest_wavelengths, this_noise_variance, rest_wavelengths);
 %   rest_noise_variances(i, :) = rest_noise_variances(i, :) / this_median .^ 2;
 end
 clear('all_wavelengths', 'all_flux', 'all_noise_variance', 'all_pixel_mask');
 
-% % % filter out empty spectra
-% % % note: if you've done this in preload_qsos then skip these lines
-% % z_qsos               = z_qsos(~is_empty);
-% % rest_fluxes          = rest_fluxes(~is_empty, :);
-% % rest_noise_variances = rest_noise_variances(~is_empty, :);
+% filter out empty spectra
+% note: if you've done this in preload_qsos then skip these lines
+z_qsos               = z_qsos(~is_empty);
+rest_fluxes          = rest_fluxes(~is_empty, :);
+rest_noise_variances = rest_noise_variances(~is_empty, :);
 % 
 % update num_quasars in consideration
 num_quasars = numel(z_qsos);
