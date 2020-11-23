@@ -1,17 +1,18 @@
 
+
 Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cooksey_C4_detected.fits', 'binarytable');
 c4_QSO_ID           = Cooksey_C4_detected{1};
 c4_NCIV             = Cooksey_C4_detected{10};
-c4_zCIV             = Cooksey_C4_detected{3};
-
+c4_z             = Cooksey_C4_detected{3};
+c4_num           = Cooksey_C4_detected{13};
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/los_catalog','w');
-for i=1:size(c4_zCIV)
+for i=1:size(c4_z)
     fprintf(f,'%s \n', c4_QSO_ID{i});
 end
 
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/c4_catalog','w');
-for i=1:size(c4_zCIV)
-      fprintf(f,'%s  %f %f\n', c4_QSO_ID{i}, c4_zCIV(i), c4_NCIV(i));
+for i=1:size(c4_z)
+      fprintf(f,'%s  %f %f\n', c4_QSO_ID{i}, c4_z(i), c4_NCIV(i));
 end
 
 % There are some NAN valued c4_NCIV
@@ -44,10 +45,25 @@ for i=1:numel(all_DEC_Sign_d)
     end
 end
 
+all_z_c4 = zeros(num_quasars,1);
+all_z_c4 = all_z_c4 -1;
+%  adding a cloumn for c4 col density if there is a c4 for a sight line
+ind_c4 = ismember(all_QSO_ID, c4_QSO_ID);
+j=0;
+for i=1:num_quasars
+    
+    if ind_c4(i)==1
+        j=j+1;
+        all_z_c4(i)=c4_z(j);
+    end
+    
+end
+
+
 % save catalog 
 release = 'dr7';
 variables_to_save = {'all_QSO_ID', 'all_ras', 'all_decs', 'all_zqso',...
-    'all_snrs', 'all_bal_flags'};
+    'all_snrs', 'all_bal_flags', 'all_z_c4'};
 save(sprintf('%s/catalog', processed_directory(release)), ...
     variables_to_save{:}, '-v7.3');
 % because QSO_IDs are cell arrays (character) we need to match them in this

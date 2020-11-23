@@ -54,9 +54,9 @@ normalization_min_lambda = 1310;
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
 normalization_max_lambda = 1325; 
 % null model parameters
-min_lambda         =  lya_wavelength;                    % range of rest wavelengths to       Å
+min_lambda         =  1216;                    % range of rest wavelengths to       Å
 max_lambda         = 1600;                    %   model
-dlambda            = 0.1;                    % separation of wavelength grid      Å
+dlambda            = 0.25;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
 max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
 

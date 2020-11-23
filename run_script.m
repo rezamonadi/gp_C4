@@ -1,11 +1,11 @@
 c4_set_parameters
 c4_build_catalog
 c4_preload_qsos
+% load('data/dr7/processed/preloaded_qsos.mat');
 cd minFunc_2012
 addpath(genpath(pwd))
 mexAll
 cd ..
-training_release = 'dr7';
 f = load(sprintf('%s/filter_flags', processed_directory(training_release)));
 filter_flags= f.filter_flags;
 
@@ -17,8 +17,7 @@ prior_ind = ((ismember(all_QSO_ID, c4_QSO_ID)) & (filter_flags==0) & ...
 train_ind = (~ismember(all_QSO_ID, c4_QSO_ID) & (filter_flags==0) & ...
                 ismember(all_QSO_ID, half_ID) );
 
-c4_inds = ismember(all_QSO_ID, c4_QSO_ID);
-save('indeces.mat', 'prior_ind','train_ind', 'test_ind');
 learn_qso_model
 generate_c4_samples
-generate_ascii_catalog
+process_qsos
+% generate_ascii_catalog

@@ -1,35 +1,35 @@
 % process_qsos: run DLA detection algorithm on specified objects
 
-% load redshifts/DLA flags from training release
-prior_catalog = ...
+% load C4 catalog
+Full_catalog = ...
     load(sprintf('%s/catalog', processed_directory(training_release)));
 
 if (ischar(prior_ind))
   prior_ind = eval(prior_ind);
 end
 
-prior.z_qsos  = prior_catalog.all_zqso(prior_ind);
-prior.c4_ind = c4_inds;
-%prior.c4_ind = prior.c4_ind(prior_ind);
+prior.z_qsos  = Full_catalog.all_zqso(prior_ind);
+prior.c4_ind = prior_ind;
+% My prior_ind here is already those OK sight of lines that have CIV
 
-% % Not relevenat for CIV absorpyion (I think)
-% % filter out DLAs from prior catalog corresponding to region of spectrum below
-% % Ly∞ QSO rest
-% prior.z_dlas = prior_catalog.z_dlas(dla_catalog_name);
-% prior.z_dlas = prior.z_dlas(prior_ind);
-% 
-% for i = find(prior.dla_ind)'
-%   if (observed_wavelengths(lya_wavelength, prior.z_dlas{i}) < ...
-%       observed_wavelengths(lyman_limit,    prior.z_qsos(i)))
-%     prior.dla_ind(i) = false;
-%   end
-% end
 
-% prior = rmfield(prior, 'z_dlas');
+% filter out CIVs from prior catalog corresponding to region of spectrum below
+% Ly-alpha QSO rest
+
+prior.z_c4 = Full_catalog.all_z_c4(prior_ind);
+
+for i = size(prior.z_c4)
+  if (observed_wavelengths(civ_1548_wavelength , prior.z_c4(i)) < ...
+      observed_wavelengths(lya_wavelength, prior.z_qsos(i)))
+    prior.c4_ind(i) = false;
+  end
+end
+
+prior = rmfield(prior, 'z_c4');
 
 % load QSO model from training release
 variables_to_load = {'rest_wavelengths', 'mu', 'M'};
-load('data/dr7/processed/learned_model_Cooskey_all_qso_catalog_norm_1510-1590',variables_to_load{:});
+load('data/dr7/processed/learned_model_Cooskey_all_qso_catalog_norm_1310-1325.mat',variables_to_load{:});
 
 % load DLA samples from training release
 variables_to_load = {'offset_samples', 'log_nciv_samples', 'nciv_samples'};
@@ -57,7 +57,7 @@ all_pixel_mask     =     all_pixel_mask(test_ind);
 
 z_qsos = catalog.all_zqso(test_ind);
 
-num_quasars = numel(all_zqso);
+num_quasars = numel(z_qsos);
 
 % preprocess model interpolants
 mu_interpolator = ...
@@ -103,21 +103,16 @@ for quasar_ind = 1:num_quasars
   % convert to QSO rest frame
   this_rest_wavelengths = emitted_wavelengths(this_wavelengths, z_qso);
 
-  ind = (this_rest_wavelengths >= min_lambda) & ...
-        (this_rest_wavelengths <= max_lambda);
-
+  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
+                 (this_rest_wavelengths <= max_lambda);
   % keep complete copy of equally spaced wavelengths for absorption
   % computation
-  this_unmasked_wavelengths = this_wavelengths(ind);
-	
-	
-  %ind = ind & (~this_pixel_mask);
-  unmasked_ind = (this_rest_wavelengths >= min_lambda) & ...
-      (this_rest_wavelengths <= max_lambda);
   this_unmasked_wavelengths = this_wavelengths(unmasked_ind);
+
+  % [mask_ind] remove flux pixels with pixel_mask; pixel_mask is defined
+  % in read_spec_dr7.m
   ind = unmasked_ind & (~this_pixel_mask);
-  ind = (~this_pixel_mask(unmasked_ind)); 
-  
+
   this_wavelengths      =      this_wavelengths(ind);
   this_rest_wavelengths = this_rest_wavelengths(ind);
   this_flux             =             this_flux(ind);
@@ -142,7 +137,7 @@ for quasar_ind = 1:num_quasars
   fprintf('\n');
   fprintf(' ...     p(   CIV | z_QSO)  mvn      : %0.3f\n',     this_p_c4);
   fprintf(' ...     p(no CIV | z_QSO)        : %0.3f\n', 1 - this_p_c4);
-
+  
   % interpolate model onto given wavelengths
   this_mu = mu_interpolator( this_rest_wavelengths);
   this_M  =  M_interpolator({this_rest_wavelengths, 1:k});
@@ -187,8 +182,10 @@ for quasar_ind = 1:num_quasars
                 width)'                                                        ...
       ];
 
-  % to retain only unmasked pixels from computed absorption profile
-  ind = (~this_pixel_mask(ind));
+  % [mask_ind] to retain only unmasked pixels from computed absorption profile
+  % this has to be done by using the unmasked_ind which has not yet
+  % been applied this_pixel_mask.
+  ind = (~this_pixel_mask(unmasked_ind));
 
   % compute probabilities under DLA model for each of the sampled
   % (normalized offset, log(N HI)) pairs
@@ -220,10 +217,13 @@ for quasar_ind = 1:num_quasars
   log_posteriors_c4(quasar_ind) = ...
       log_priors_c4(quasar_ind) + log_likelihoods_c4(quasar_ind);
 
-  fprintf(' ... log p(D | z_QSO,    DLA)     : %0.2f\n', ...
+  fprintf(' ... log p(D | z_QSO,    CIV)     : %0.2f\n', ...
                 log_likelihoods_c4(quasar_ind));
-  fprintf(' ... log p(DLA | D, z_QSO)        : %0.2f\n', ...
+  fprintf(' ... log p(CIV | D, z_QSO)        : %0.2f\n', ...
                 log_posteriors_c4(quasar_ind));
+  % fprintf(' ... Num_CIV                      : %d\n ', ... 
+  %               Full_catalog.all_Num_c4_sys(quasar_ind))
+  % % fprintf('... FilterFlag                    : %d\n ', filter)
   fprintf(' took %0.3fs.\n', toc);
 end
 
