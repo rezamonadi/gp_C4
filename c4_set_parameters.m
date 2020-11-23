@@ -35,8 +35,8 @@ training_release  = 'dr7';
 training_set_name = 'Cooskey_all_qso_catalog';
 
 % file loading parameters
-loading_min_lambda = 1216;          % range of rest wavelengths to load  Å
-loading_max_lambda = 1600;                    
+loading_min_lambda = 1350;          % range of rest wavelengths to load  Å
+loading_max_lambda = 1570;                    
 % The maximum allowed is set so that even if the peak is redshifted off the end, the
 % quasar still has data in the range
 

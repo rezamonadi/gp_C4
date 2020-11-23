@@ -4,7 +4,7 @@ Cooksey_C4_detected = fitsread('data/C4_catalogs/Cooksey_C4_cat/distfiles/Cookse
 c4_QSO_ID           = Cooksey_C4_detected{1};
 c4_NCIV             = Cooksey_C4_detected{10};
 c4_z             = Cooksey_C4_detected{3};
-c4_num           = Cooksey_C4_detected{13};
+
 f = fopen('data/C4_catalogs/Cooksey_C4_cat/processed/los_catalog','w');
 for i=1:size(c4_z)
     fprintf(f,'%s \n', c4_QSO_ID{i});
@@ -29,7 +29,7 @@ all_zqso                = cooksey_all_qso_catalog{8};
 all_snrs                = cooksey_all_qso_catalog{9};
 all_bal_flags           = cooksey_all_qso_catalog{10};
 num_quasars             = numel(all_zqso);
-
+all_c4_num           = cooksey_all_qso_catalog{13};
 % Converting RA in Hour angle to ordinary degree
 all_ras = all_RAh.*15 + all_RAm./4 + all_RAs./240;
 all_decs = all_RAh.*15 + all_RAm./4 + all_RAs./240;
@@ -44,9 +44,11 @@ for i=1:numel(all_DEC_Sign_d)
             all_DEC_s(i)./3600;
     end
 end
-
 all_z_c4 = zeros(num_quasars,1);
 all_z_c4 = all_z_c4 -1;
+all_c4_NCIV = zeros(num_quasars,1);
+
+
 %  adding a cloumn for c4 col density if there is a c4 for a sight line
 ind_c4 = ismember(all_QSO_ID, c4_QSO_ID);
 j=0;
@@ -55,6 +57,8 @@ for i=1:num_quasars
     if ind_c4(i)==1
         j=j+1;
         all_z_c4(i)=c4_z(j);
+        all_c4_NCIV(i) = c4_NCIV(j);
+        
     end
     
 end
@@ -63,7 +67,7 @@ end
 % save catalog 
 release = 'dr7';
 variables_to_save = {'all_QSO_ID', 'all_ras', 'all_decs', 'all_zqso',...
-    'all_snrs', 'all_bal_flags', 'all_z_c4'};
+    'all_snrs', 'all_bal_flags', 'all_z_c4', 'all_c4_num', 'all_c4_NCIV'};
 save(sprintf('%s/catalog', processed_directory(release)), ...
     variables_to_save{:}, '-v7.3');
 % because QSO_IDs are cell arrays (character) we need to match them in this

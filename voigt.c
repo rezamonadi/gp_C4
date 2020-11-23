@@ -53,10 +53,14 @@ static const double Gammas[] =                         /* transition rates      
 
 /* b = sqrt(2 * k * T / m_p); */
 /* static const double b =
-     1.28486551932562422e+06; */                       /* Doppler parameter       cm s⁻¹        */
+/*     1.28486551932562422e+06; */                       /* Doppler parameter       cm s⁻¹        */
 
 /* sigma = b / M_SQRT2; */
 static const double sigma = 9.08537121627923800e+05;   /* Gaussian width          cm s⁻¹        */
+
+//static const double sigma =   1771064895826412132e+6 /* Gaussian width          cm s⁻¹        */
+
+
 
 /* leading_constants[i] =
       M_PI * e * e * oscillator_strengths[i] * transition_wavelengths[i] / (m_e * c) ;
