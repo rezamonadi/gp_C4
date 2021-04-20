@@ -2,13 +2,14 @@
 % catalog
 
 % since we don't have hash tables in catalog.mat, we load the ascii file directly
-% training_set_name = 'Cooksey_C4_cat';
+training_set_name = 'Cooksey_C4_cat';
 
-%c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
-training_set_name = 'UVES';
+c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
+c4_catalog =c4_catalog(c4_catalog(:,3)>0,:); % removing some null column densities
+% training_set_name = 'UVES';
 
 % c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
-c4_catalog = fitsread('data/C4_catalogs/UVES_C4_cat/tab2.fits', 'binarytable');
+% c4_catalog = fitsread('data/C4_catalogs/UVES_C4_cat/tab2.fits', 'binarytable');
 
 % generate quasirandom samples from p(normalized offset, log₁₀(N_CIV))
 rng('default');
@@ -29,8 +30,8 @@ u = makedist('uniform', ...
              'upper', uniform_max_log_nciv);
 
 % extract observed log₁₀ N_CIV samples directly from CIV catalog
-%log_nciv = c4_catalog(:, 3)
-log_nciv = c4_catalog{6};
+log_nciv = c4_catalog(:, 3);
+% log_nciv = c4_catalog{6};
 
 % make a quadratic fit to the estimated log p(log₁₀ N_CIV) over the
 % specified range
@@ -79,3 +80,4 @@ variables_to_save = {'uniform_min_log_nciv', 'uniform_max_log_nciv', ...
                      'offset_samples', 'log_nciv_samples', 'nciv_samples'};
 save(sprintf('%s/civ_samples', processed_directory(training_release)), ...
      variables_to_save{:}, '-v7.3');
+histogram(log_nciv_samples)
