@@ -13,11 +13,12 @@ c4_catalog =c4_catalog(c4_catalog(:,3)>0,:); % removing some null column densiti
 
 % generate quasirandom samples from p(normalized offset, log₁₀(N_CIV))
 rng('default');
-sequence = scramble(haltonset(2), 'rr2');
+sequence = scramble(haltonset(3), 'rr2');
 
 % the first dimension can be used directly for the uniform prior over
 % offsets
-offset_samples  = sequence(1:num_C4_samples, 1)';
+offset_z_samples  = sequence(1:num_C4_samples, 1)';
+offset_sigma_samples  = sequence(1:num_C4_samples, 3)';
 
 % we must transform the second dimension to have the correct marginal
 % distribution for our chosen prior over column density, which is a
@@ -77,7 +78,7 @@ nciv_samples = 10.^log_nciv_samples;
 variables_to_save = {'uniform_min_log_nciv', 'uniform_max_log_nciv', ...
                      'fit_min_log_nciv', 'fit_max_log_nciv', 'alpha', ...
                      'extrapolate_min_log_nciv', ...
-                     'offset_samples', 'log_nciv_samples', 'nciv_samples'};
+                     'offset_z_samples', 'offset_sigma_samples', 'log_nciv_samples', 'nciv_samples'};
 save(sprintf('%s/civ_samples', processed_directory(training_release)), ...
      variables_to_save{:}, '-v7.3');
 histogram(log_nciv_samples)

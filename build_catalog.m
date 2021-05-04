@@ -36,6 +36,8 @@ for i=1:nSys
       c4_detcted_plate_dr7(i), c4_detcted_fiber_dr7(i), Z_c4(i), NCIV(i));
 end
 
+save('data/C4_catalogs/Cooksey_C4_cat/processed/CIV-cat.mat','c4_QSO_ID','Z_c4','NCIV');
+
 % There are some NAN valued c4_NCIV
 % extract basic QSO information from Cookse_all_QSO catalog 
 cooksey_catalog = ...
@@ -53,6 +55,7 @@ num_quasars             = numel(all_zqso);
 all_z_c4 = zeros(num_quasars,1);
 all_z_c4 = all_z_c4 -1;
 all_NCIV = zeros(num_quasars,1);
+all_c4_NCIV =zeros(num_quasars,1)-1;
 all_QSO_ID=cell(num_quasars,1);
 for i=1:num_quasars
     all_QSO_ID{i}=sprintf('%05i-%04i-%04i', (all_mjd_dr7(i)), ...

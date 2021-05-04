@@ -1,4 +1,4 @@
-% set_parameters: sets various parameters for the DLA detection 
+% set_parameters: sets various parameters for the CIV detection 
 % pipeline
 % Desined for using DR16 spectra  
 %flags for changes
@@ -67,13 +67,16 @@ minFunc_options =               ...           % optimization options for model f
            'MaxFunEvals', 10000);
 
 % C4 model parameters: parameter samples (for Quasi-Monte Carlo)
-num_C4_samples       = 10000;                  % number of parameter samples
-alpha                = 0.9;                    % weight of KDE component in mixture
-uniform_min_log_nciv = 13.0189;                   % range of column density samples    [cm⁻²]
-uniform_max_log_nciv = 16;                   % from uniform distribution
-fit_min_log_nciv     = 13.0189;                   % range of column density samples    [cm⁻²]
-fit_max_log_nciv     = 15.8;                   % from fit to log PDF
+num_C4_samples           = 10000;                  % number of parameter samples
+alpha                    = 0.9;                    % weight of KDE component in mixture
+uniform_min_log_nciv     = 13.0189;                   % range of column density samples    [cm⁻²]
+uniform_max_log_nciv     = 16;                   % from uniform distribution
+fit_min_log_nciv         = 13.0189;                   % range of column density samples    [cm⁻²]
+fit_max_log_nciv         = 15.8;                   % from fit to log PDF
 extrapolate_min_log_nciv = 13.0189;               % normalization range for the extrapolated region
+min_sigma                = 5e5;                   % cm/s -> b/sqrt(2) -> min Doppler par from Cooksey
+max_sigma                = 40e5;                   % cm/s -> b/sqrt(2) -> max Doppler par from Cooksey
+
 % model prior parameters
 
 prior_z_qso_increase = kms_to_z(30000);       % use QSOs with z < (z_QSO + x) for prior
