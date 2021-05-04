@@ -4,34 +4,36 @@
 #include "mex.h"
 #include <cerf.h>
 #include <math.h>
+#include <stdio.h>
 
 #define LAMBDAS_ARG    prhs[0]
 #define Z_ARG          prhs[1]
 #define N_ARG          prhs[2]
 #define NUM_LINES_ARG  prhs[3]
+#define sigma_ARG      prhs[4]
 
 #define PROFILE_ARG    plhs[0]
 
-/* number of lines in the Lyman series to consider */
-#define NUM_LINES 31
+/* number of lines in CIV doublet */
+#define NUM_LINES 2
 
 /* note: all units are CGS */
 
 /* physical constants */
 
 static const double c   = 2.99792458e+10;              /* speed of light          cm s⁻¹        */
-/* static const double k   = 1.38064852e-16; */        /* Boltzmann constant      erg K⁻¹       */
-/* static const double m_p = 1.672621898e-24;*/        /* proton mass             g             */
-/* static const double m_e = 9.10938356e-28; */        /* electron mass           g             */
-/* e = 1.6021766208e-19 * c / 10; */
-/* static const double e   = 4.803204672997660e-10; */ /* elementary charge       statC         */
+static const double k   = 1.38064852e-16;         /* Boltzmann constant      erg K⁻¹       */
+static const double m_p = 1.672621898e-24;        /* proton mass             g             */
+static const double m_e = 9.10938356e-28;         /* electron mass           g             */
+// double e = 1.6021766208e-19 * c / 10; */
+static const double e   = 4.803204672997660e-10;  /* elementary charge       statC         */
 
 /* CIV doublet */
 
 static const double transition_wavelengths[] =         /* transition wavelengths  cm            */
   {
-    1.54820490e-05,
-    1.55077845e-05
+    1.5482040e-05,
+    1.5507810e-05
   };
 
 static const double oscillator_strengths[] =           /* oscillator strengths    dimensionless */
@@ -42,7 +44,7 @@ static const double oscillator_strengths[] =           /* oscillator strengths  
 
 static const double Gammas[] =                         /* transition rates        s^-1          */
   {
-    2.642e+08,
+    2.643e+08,
     2.628e+08
   };
 
@@ -52,20 +54,19 @@ static const double Gammas[] =                         /* transition rates      
 /* derived constants */
 
 /* b = sqrt(2 * k * T / m_p); */
+/* b = sqrt(2 * k * T / (6*m_p+6*m_n)); */
 /* static const double b =
 /*     1.28486551932562422e+06; */                       /* Doppler parameter       cm s⁻¹        */
 
 /* sigma = b / M_SQRT2; */
-static const double sigma = 9.08537121627923800e+05;   /* Gaussian width          cm s⁻¹        */
-
-//static const double sigma =   1771064895826412132e+6 /* Gaussian width          cm s⁻¹        */
-
-
-
-/* leading_constants[i] =
-      M_PI * e * e * oscillator_strengths[i] * transition_wavelengths[i] / (m_e * c) ;
-*/
-static const double leading_constants[] =              /* leading constants       cm²           */
+// static const double sigma = 262181.7413311349;         /* T=1e4 */
+// static const double sigma= 370780.9743970856;            /*  T=2e4 */
+//static const double sigma= 829091.4635154926;            /* T=1e5*/
+// static const double sigma= 2621817.413311349;            /* T=1e6*/
+// leading_constants[i] =
+      // M_PI * e * e * oscillator_strengths[i] * transition_wavelengths[i] / (m_e * c) ;
+// */
+static const double leading_constants[] =              /* leading constants  cm² */
   {     7.802895118381213e-08,
      3.899701297867750e-08
  };
@@ -112,7 +113,7 @@ void mexFunction(int nlhs,       mxArray *plhs[],
 		 int nrhs, const mxArray *prhs[]) {
 
   double *lambdas, *profile, *multipliers, *raw_profile;
-  double z, N, velocity, total;
+  double z, N, velocity, total, sigma;
   int num_lines, i, j, k;
   mwSize num_points;
 
@@ -120,9 +121,8 @@ void mexFunction(int nlhs,       mxArray *plhs[],
   lambdas = mxGetPr(LAMBDAS_ARG);                /* wavelengths             Å             */
   z       = mxGetScalar(Z_ARG);                  /* redshift                dimensionless */
   N       = mxGetScalar(N_ARG);                  /* column density          cm⁻²          */
-
+  sigma       = mxGetScalar(sigma_ARG);
   num_lines = (nrhs > 3) ? (int)(mxGetScalar(NUM_LINES_ARG)) : NUM_LINES;
-
   num_points = mxGetNumberOfElements(LAMBDAS_ARG);
 
   /* initialize output */
