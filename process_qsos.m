@@ -82,6 +82,7 @@ log_posteriors_no_c4      = nan(num_quasars, 1);
 log_posteriors_c4         = nan(num_quasars, 1);
 map_N_c4                  = nan(num_quasars, 1);
 map_z_c4                  = nan(num_quasars, 1);
+sample_sigma_c4 = min_sigma + (max_sigma-min_sigma)*offset_sigma_samples;
 
 for quasar_ind = 1:num_quasars
     tic;
@@ -167,7 +168,6 @@ for quasar_ind = 1:num_quasars
 
 
     % Temperature samples
-    sample_sigma_c4 = min_sigma + (max_sigma-min_sigma)*offset_sigma_samples;
     
     % ensure enough pixels are on either side for convolving with
     % instrument profile
