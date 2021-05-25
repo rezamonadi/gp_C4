@@ -33,11 +33,11 @@ file_loader = @(mjd, plate, fiber_id) ...
   (read_spec_dr7(sprintf('data/dr7/spectro/1d_26/%04i/1d/spSpec-%05i-%04i-%03i.fit',...
   plate, mjd, plate, fiber_id)));
 training_release  = 'dr7';
-training_set_name = 'Cooskey_all_qso_catalog';
+training_set_name = 'sample-100000-dl-01-L12';
 
 % file loading parameters
-loading_min_lambda = 1350;          % range of rest wavelengths to load  Å
-loading_max_lambda = 1570;                    
+loading_min_lambda = 1310;          % range of rest wavelengths to load  Å
+loading_max_lambda = 1555;                    
 % The maximum allowed is set so that even if the peak is redshifted off the end, the
 % quasar still has data in the range
 
@@ -51,15 +51,15 @@ min_num_pixels = 400;                         % minimum number of non-masked pix
 % normalization parameters
 % I use 1216 is basically because I want integer in my saved filenames%
 %normalization_min_lambda = 1216 - 40;              % range of rest wavelengths to use   Å
-normalization_min_lambda = 1310; 
+normalization_min_lambda = 1420; 
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
-normalization_max_lambda = 1325; 
+normalization_max_lambda = 1470; 
 % null model parameters
-min_lambda         =  1216;                    % range of rest wavelengths to       Å
-max_lambda         = 1600;                    %   model
-dlambda            = 0.25;                    % separation of wavelength grid      Å
+min_lambda         =  1315;                    % range of rest wavelengths to       Å
+max_lambda         = 1550;                    %   model
+dlambda            = 0.01;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
-max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
+max_noise_variance = 0.5^2;                     % maximum pixel noise allowed during model training
 
 % optimization parameters
 minFunc_options =               ...           % optimization options for model fitting
@@ -67,13 +67,14 @@ minFunc_options =               ...           % optimization options for model f
            'MaxFunEvals', 10000);
 
 % C4 model parameters: parameter samples (for Quasi-Monte Carlo)
-num_C4_samples           = 10000;                  % number of parameter samples
+num_C4_samples           = 100000;                  % number of parameter samples
 alpha                    = 0.9;                    % weight of KDE component in mixture
 uniform_min_log_nciv     = 13.0189;                   % range of column density samples    [cm⁻²]
 uniform_max_log_nciv     = 16;                   % from uniform distribution
 fit_min_log_nciv         = 13.0189;                   % range of column density samples    [cm⁻²]
 fit_max_log_nciv         = 15.8;                   % from fit to log PDF
 extrapolate_min_log_nciv = 13.0189;               % normalization range for the extrapolated region
+extrapolate_max_log_nciv = 16;               % normalization range for the extrapolated region
 min_sigma                = 5e5;                   % cm/s -> b/sqrt(2) -> min Doppler par from Cooksey
 max_sigma                = 40e5;                   % cm/s -> b/sqrt(2) -> max Doppler par from Cooksey
 

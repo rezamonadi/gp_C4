@@ -66,11 +66,11 @@ for i = 1:num_quasars
       interp1(this_rest_wavelengths, this_flux,           rest_wavelengths);
 
   %normalizing here
-  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
-        (this_rest_wavelengths <= normalization_max_lambda) & ...
-        (~this_pixel_mask);
+  % ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+  %       (this_rest_wavelengths <= normalization_max_lambda) & ...
+  %       (~this_pixel_mask);
 
-%   this_median = nanmedian(this_flux(ind));
+% this_median = nanmedian(this_flux(ind));
 %   rest_fluxes(i, :) = rest_fluxes(i, :) / this_median;
 
   rest_noise_variances(i, :) = ...
@@ -88,7 +88,7 @@ rest_noise_variances = rest_noise_variances(~is_empty, :);
 % update num_quasars in consideration
 num_quasars = numel(z_qsos);
 
-fprintf('Get rid of empty spectra, num_quasars = %i\n', num_quasars);
+fprintf('Get rid of %i empty spectra.\nnum_quasars = %i\n', sum(is_empty), num_quasars);
 
 % mask noisy pixels
 ind = (rest_noise_variances > max_noise_variance);
@@ -101,7 +101,7 @@ rest_noise_variances(ind) = nan;
 % Filter out spectra which have too many NaN pixels
 ind = sum(isnan(rest_fluxes),2) < num_rest_pixels-min_num_pixels;
 
-fprintf("Filtering %g quasars for NaN\n", length(rest_fluxes) - nnz(ind));
+fprintf("Filtering %g quasars for NaN\n", num_quasars - nnz(ind));
 
 rest_fluxes          = rest_fluxes(ind, :);
 rest_noise_variances = rest_noise_variances(ind,:);
@@ -116,48 +116,49 @@ max(find(nancolfrac > 0.9))
 % find empirical mean vector and center data
 mu = nanmean(rest_fluxes);
 centered_rest_fluxes = bsxfun(@minus, rest_fluxes, mu);
-clear('rest_fluxes');
 
-% small fix to the data fit into the pca:
-% make the NaNs to the medians of a given row
-% rememeber not to inject this into the actual
-% joint likelihood maximisation
-pca_centered_rest_flux = centered_rest_fluxes;
+% % clear('rest_fluxes');
 
-[num_quasars, ~] = size(pca_centered_rest_flux);
+% % small fix to the data fit into the pca:
+% % make the NaNs to the medians of a given row
+% % rememeber not to inject this into the actual
+% % joint likelihood maximisation
+% pca_centered_rest_flux = centered_rest_fluxes;
 
-for i = 1:num_quasars
-  this_pca_centered_rest_flux = pca_centered_rest_flux(i, :);
+% [num_quasars, ~] = size(pca_centered_rest_flux);
 
-  % assign median value for each row to nan
-  ind = isnan(this_pca_centered_rest_flux);
+% for i = 1:num_quasars
+%   this_pca_centered_rest_flux = pca_centered_rest_flux(i, :);
 
-  pca_centered_rest_flux(i, ind) = nanmedian(this_pca_centered_rest_flux);
-end
+%   % assign median value for each row to nan
+%   ind = isnan(this_pca_centered_rest_flux);
 
-% get top-k PCA vectors to initialize M
-[coefficients, ~, latent] = ...
-  pca(pca_centered_rest_flux, ...
-        'numcomponents', k, ...
-        'rows',          'complete');
-% initialize A to top-k PCA components of non-DLA-containing spectra
-initial_M = bsxfun(@times, coefficients(:, 1:k), sqrt(latent(1:k))');
-objective_function = @(x) objective(x, centered_rest_fluxes, rest_noise_variances);
+%   pca_centered_rest_flux(i, ind) = nanmedian(this_pca_centered_rest_flux);
+% end
 
-% maximize likelihood via L-BFGS
-[x, log_likelihood, ~, minFunc_output] = ...
-    minFunc(objective_function, initial_M, minFunc_options);
+% % get top-k PCA vectors to initialize M
+% [coefficients, ~, latent] = ...
+%   pca(pca_centered_rest_flux, ...
+%         'numcomponents', k, ...
+%         'rows',          'complete');
+% % initialize A to top-k PCA components of non-DLA-containing spectra
+% initial_M = bsxfun(@times, coefficients(:, 1:k), sqrt(latent(1:k))');
+% objective_function = @(x) objective(x, centered_rest_fluxes, rest_noise_variances);
 
-ind = (1:(num_rest_pixels * k));
-M = reshape(x(ind), [num_rest_pixels, k]);
+% % maximize likelihood via L-BFGS
+% [x, log_likelihood, ~, minFunc_output] = ...
+%     minFunc(objective_function, initial_M, minFunc_options);
 
-variables_to_save = {'training_release', 'train_ind', 'max_noise_variance', ...
-                     'minFunc_options', 'rest_wavelengths', 'mu', ...
-                     'initial_M', 'M',  'log_likelihood', ...
-                     'minFunc_output'};
+% ind = (1:(num_rest_pixels * k));
+% M = reshape(x(ind), [num_rest_pixels, k]);
 
-save(sprintf('%s/learned_model_%s_norm_%d-%d',             ...
-             processed_directory(training_release), ...
-             training_set_name, ...
-	     normalization_min_lambda, normalization_max_lambda), ...
-     variables_to_save{:}, '-v7.3');
+% variables_to_save = {'training_release', 'train_ind', 'max_noise_variance', ...
+%                      'minFunc_options', 'rest_wavelengths', 'mu', ...
+%                      'initial_M', 'M',  'log_likelihood', ...
+%                      'minFunc_output', 'test_ind', 'prior_ind'};
+
+% save(sprintf('%s/learned_model_%s_norm_%d-%d',             ...
+%              processed_directory(training_release), ...
+%              training_set_name, ...
+% 	     normalization_min_lambda, normalization_max_lambda), ...
+%      variables_to_save{:}, '-v7.3');

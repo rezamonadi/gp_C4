@@ -2,13 +2,10 @@
 % catalog
 
 % since we don't have hash tables in catalog.mat, we load the ascii file directly
-training_set_name = 'Cooksey_C4_cat';
+c4_catalog = load('data/C4_catalogs/Cooksey_C4_cat/processed/c4_catalog');
 
-c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
-c4_catalog =c4_catalog(c4_catalog(:,3)>0,:); % removing some null column densities
+
 % training_set_name = 'UVES';
-
-% c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
 % c4_catalog = fitsread('data/C4_catalogs/UVES_C4_cat/tab2.fits', 'binarytable');
 
 % generate quasirandom samples from p(normalized offset, log₁₀(N_CIV))
@@ -53,7 +50,7 @@ fprintf('Solved roots( df/dN ) : %d\n', turning_log_nciv);
 unnormalized_pdf = ...
      @(nciv) ( exp(polyval(f,  nciv))              .*      heaviside( nciv - turning_log_nciv ) ...
            +   exp(polyval(f,  turning_log_nciv))  .* (1 - heaviside( nciv - turning_log_nciv )) );
-Z = integral(unnormalized_pdf, extrapolate_min_log_nciv, 16); 
+Z = integral(unnormalized_pdf, extrapolate_min_log_nciv, extrapolate_max_log_nciv); 
 % integrate until 16 to get the tail region
 
 % create the PDF of the mixture between the unifrom distribution and
@@ -69,7 +66,7 @@ cdf = @(nciv) (integral(normalized_pdf, fit_min_log_nciv, nciv));
 log_nciv_samples = zeros(1, num_C4_samples);
 for i = 1:num_C4_samples
   log_nciv_samples(i) = ...
-      fzero(@(nciv) (cdf(nciv) - sequence(i, 2)), 14.4);
+      fzero(@(nciv) (cdf(nciv) - sequence(i, 2)), 1.446790e+01);
 end
 
 % precompute N_CIV samples for convenience
@@ -79,6 +76,5 @@ variables_to_save = {'uniform_min_log_nciv', 'uniform_max_log_nciv', ...
                      'fit_min_log_nciv', 'fit_max_log_nciv', 'alpha', ...
                      'extrapolate_min_log_nciv', ...
                      'offset_z_samples', 'offset_sigma_samples', 'log_nciv_samples', 'nciv_samples'};
-save(sprintf('%s/civ_samples', processed_directory(training_release)), ...
+save(sprintf('%s/civ_samples-%s', processed_directory(training_release), training_set_name), ...
      variables_to_save{:}, '-v7.3');
-histogram(log_nciv_samples)
