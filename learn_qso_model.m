@@ -66,11 +66,11 @@ for i = 1:num_quasars
       interp1(this_rest_wavelengths, this_flux,           rest_wavelengths);
 
   %normalizing here
-  ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
-        (this_rest_wavelengths <= normalization_max_lambda) & ...
-        (~this_pixel_mask);
+  % ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
+  %       (this_rest_wavelengths <= normalization_max_lambda) & ...
+  %       (~this_pixel_mask);
 
-%   this_median = nanmedian(this_flux(ind));
+% this_median = nanmedian(this_flux(ind));
 %   rest_fluxes(i, :) = rest_fluxes(i, :) / this_median;
 
   rest_noise_variances(i, :) = ...
@@ -88,7 +88,7 @@ rest_noise_variances = rest_noise_variances(~is_empty, :);
 % update num_quasars in consideration
 num_quasars = numel(z_qsos);
 
-fprintf('Get rid of empty spectra, num_quasars = %i\n', num_quasars);
+fprintf('Get rid of %i empty spectra.\nnum_quasars = %i\n', sum(is_empty), num_quasars);
 
 % mask noisy pixels
 ind = (rest_noise_variances > max_noise_variance);
@@ -101,7 +101,7 @@ rest_noise_variances(ind) = nan;
 % Filter out spectra which have too many NaN pixels
 ind = sum(isnan(rest_fluxes),2) < num_rest_pixels-min_num_pixels;
 
-fprintf("Filtering %g quasars for NaN\n", length(rest_fluxes) - nnz(ind));
+fprintf("Filtering %g quasars for NaN\n", num_quasars - nnz(ind));
 
 rest_fluxes          = rest_fluxes(ind, :);
 rest_noise_variances = rest_noise_variances(ind,:);
@@ -116,6 +116,7 @@ max(find(nancolfrac > 0.9))
 % find empirical mean vector and center data
 mu = nanmean(rest_fluxes);
 centered_rest_fluxes = bsxfun(@minus, rest_fluxes, mu);
+
 clear('rest_fluxes');
 
 % small fix to the data fit into the pca:
@@ -154,7 +155,7 @@ M = reshape(x(ind), [num_rest_pixels, k]);
 variables_to_save = {'training_release', 'train_ind', 'max_noise_variance', ...
                      'minFunc_options', 'rest_wavelengths', 'mu', ...
                      'initial_M', 'M',  'log_likelihood', ...
-                     'minFunc_output'};
+                     'minFunc_output', 'test_ind', 'prior_ind'};
 
 save(sprintf('%s/learned_model_%s_norm_%d-%d',             ...
              processed_directory(training_release), ...

@@ -4,11 +4,22 @@ Cooksey_C4_detected = fitsread(...
 'data/C4_catalogs/Cooksey_C4_cat/distfiles/sdss_civ_cookseyetal13_update1.fit',...
 'binarytable');
 c4_detcted_mjd_dr7           = Cooksey_C4_detected{2};
-c4_detcted_plate_dr7        = Cooksey_C4_detected{3};
-c4_detcted_fiber_dr7           = Cooksey_C4_detected{4};
-Z_abs_ORG             = Cooksey_C4_detected{17};
-NCIV_ORG             = Cooksey_C4_detected{27};
-SigmaNCIV_ORG             = Cooksey_C4_detected{28};
+c4_detcted_plate_dr7         = Cooksey_C4_detected{3};
+c4_detcted_fiber_dr7         = Cooksey_C4_detected{4};
+Z_abs_ORG                    = Cooksey_C4_detected{17};
+NCIV_ORG                     = Cooksey_C4_detected{27};
+SigmaNCIV_ORG                = Cooksey_C4_detected{28};
+NCOLMFLG                     = Cooksey_C4_detected{29};
+RATING                       = Cooksey_C4_detected{30};
+% % filtering out those column densities with not good measurements
+ind = NCOLMFLG(:,1)==1 & NCOLMFLG(:,2)==1 & NCIV_ORG(:,1)>0 & NCIV_ORG(:,2)>0;
+c4_detcted_mjd_dr7           = c4_detcted_mjd_dr7(ind);
+c4_detcted_plate_dr7         = c4_detcted_plate_dr7(ind);
+c4_detcted_fiber_dr7         = c4_detcted_fiber_dr7(ind);
+Z_abs_ORG                    = Z_abs_ORG(ind,:);
+NCIV_ORG                     = NCIV_ORG(ind,:);
+SigmaNCIV_ORG                = SigmaNCIV_ORG(ind,:);
+
 [nSys,dd]=size(c4_detcted_fiber_dr7);
 NCIV=zeros(nSys,1);
 Z_c4=zeros(nSys,1);
@@ -57,6 +68,7 @@ all_z_c4 = all_z_c4 -1;
 all_NCIV = zeros(num_quasars,1);
 all_c4_NCIV =zeros(num_quasars,1)-1;
 all_QSO_ID=cell(num_quasars,1);
+all_RATING=zeros(num_quasars,1)-1;
 for i=1:num_quasars
     all_QSO_ID{i}=sprintf('%05i-%04i-%04i', (all_mjd_dr7(i)), ...
     (all_plate_dr7(i)), (all_fiber_dr7(i)));
@@ -69,8 +81,10 @@ for i=1:num_quasars
         j=j+1;
         all_z_c4(i)=Z_c4(j);
         all_c4_NCIV(i) = NCIV(j);
+        all_RATING(i)=RATING(j);
     end
 end
+all_ind_c4 = (all_ind_c4==1) & (all_RATING==3);
 
 
 
@@ -92,6 +106,8 @@ filter_flags = zeros(num_quasars, 1, 'uint8');
 % filtering bit 0: z_QSO < 1.5
 ind = (all_zqso < z_qso_cut);
 filter_flags(ind) = bitset(filter_flags(ind), 1, true);
- 
-% filtering bit 1: BAL -> the catalog is already noBAL
-% filter_flags(ind) = bitset(filter_flags(:), 2, true);
+
+% filtering bit 1: Column density are good measrements 
+% filter_flags(ind) = bitset(filter_flags(ind), 2, true);
+
+save(sprintf('%s/filter_flags', processed_directory(training_release)));   

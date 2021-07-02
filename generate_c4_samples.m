@@ -2,14 +2,8 @@
 % catalog
 
 % since we don't have hash tables in catalog.mat, we load the ascii file directly
-training_set_name = 'Cooksey_C4_cat';
+c4_catalog = load('data/C4_catalogs/Cooksey_C4_cat/processed/c4_catalog');
 
-c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
-c4_catalog =c4_catalog(c4_catalog(:,3)>0,:); % removing some null column densities
-% training_set_name = 'UVES';
-
-% c4_catalog = load(sprintf('%s/c4_catalog', c4_catalog_directory(training_set_name)));
-% c4_catalog = fitsread('data/C4_catalogs/UVES_C4_cat/tab2.fits', 'binarytable');
 
 % generate quasirandom samples from p(normalized offset, log₁₀(N_CIV))
 rng('default');
@@ -18,7 +12,6 @@ sequence = scramble(haltonset(3), 'rr2');
 % the first dimension can be used directly for the uniform prior over
 % offsets
 offset_z_samples  = sequence(1:num_C4_samples, 1)';
-offset_sigma_samples  = sequence(1:num_C4_samples, 3)';
 
 % we must transform the second dimension to have the correct marginal
 % distribution for our chosen prior over column density, which is a
@@ -53,7 +46,7 @@ fprintf('Solved roots( df/dN ) : %d\n', turning_log_nciv);
 unnormalized_pdf = ...
      @(nciv) ( exp(polyval(f,  nciv))              .*      heaviside( nciv - turning_log_nciv ) ...
            +   exp(polyval(f,  turning_log_nciv))  .* (1 - heaviside( nciv - turning_log_nciv )) );
-Z = integral(unnormalized_pdf, extrapolate_min_log_nciv, 16); 
+Z = integral(unnormalized_pdf, fit_min_log_nciv, 18); 
 % integrate until 16 to get the tail region
 
 % create the PDF of the mixture between the unifrom distribution and
@@ -69,16 +62,40 @@ cdf = @(nciv) (integral(normalized_pdf, fit_min_log_nciv, nciv));
 log_nciv_samples = zeros(1, num_C4_samples);
 for i = 1:num_C4_samples
   log_nciv_samples(i) = ...
-      fzero(@(nciv) (cdf(nciv) - sequence(i, 2)), 14.4);
+      fzero(@(nciv) (cdf(nciv) - sequence(i, 2)), 14.38163);
 end
 
+
+% sampling b or sigma
+m_e = 9.10938356e-28;
+c   = 2.99792458e+10;
+e   = 4.803204672997660e-10; 
+f1  = 0.094750;
+f2  = 0.189900;
+lambda2 = 1550e-8;
+lambda1 = 1548e-8;
+b_sampled = zeros(1,num_C4_samples);
+for jj=1:num_C4_samples
+    root=nan;
+    tau = @(b) (sqrt(pi)*e^2*(10^log_nciv_samples(jj))*lambda1*f1/(m_e*c*b));
+    g = @(b) (sqrt(1+ log((f2*lambda2)/(f1*lambda1))/log(tau(b)/log(2))));
+    while (isnan(root)==1 | root>40 | root<5)
+        root = fzero(@(b) (g(b)-rand-1), 5+35*rand);
+    end
+
+    b_sampled(jj) = root;
+end
+sample_sigma_c4 = b_sampled/sqrt(2);
 % precompute N_CIV samples for convenience
 nciv_samples = 10.^log_nciv_samples;
 
 variables_to_save = {'uniform_min_log_nciv', 'uniform_max_log_nciv', ...
                      'fit_min_log_nciv', 'fit_max_log_nciv', 'alpha', ...
                      'extrapolate_min_log_nciv', ...
-                     'offset_z_samples', 'offset_sigma_samples', 'log_nciv_samples', 'nciv_samples'};
-save(sprintf('%s/civ_samples', processed_directory(training_release)), ...
+                     'offset_z_samples', 'sample_sigma_c4', 'log_nciv_samples', 'nciv_samples'};
+save(sprintf('%s/civ_samples-%s', processed_directory(training_release), training_set_name), ...
      variables_to_save{:}, '-v7.3');
+
+figure
 histogram(log_nciv_samples)
+title('log(N)')

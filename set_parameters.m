@@ -33,11 +33,10 @@ file_loader = @(mjd, plate, fiber_id) ...
   (read_spec_dr7(sprintf('data/dr7/spectro/1d_26/%04i/1d/spSpec-%05i-%04i-%03i.fit',...
   plate, mjd, plate, fiber_id)));
 training_release  = 'dr7';
-training_set_name = 'Cooskey_all_qso_catalog';
 
 % file loading parameters
-loading_min_lambda = 1350;          % range of rest wavelengths to load  Å
-loading_max_lambda = 1570;                    
+loading_min_lambda = 1310;          % range of rest wavelengths to load  Å
+loading_max_lambda = 1555;                    
 % The maximum allowed is set so that even if the peak is redshifted off the end, the
 % quasar still has data in the range
 
@@ -51,15 +50,15 @@ min_num_pixels = 400;                         % minimum number of non-masked pix
 % normalization parameters
 % I use 1216 is basically because I want integer in my saved filenames%
 %normalization_min_lambda = 1216 - 40;              % range of rest wavelengths to use   Å
-normalization_min_lambda = 1310; 
+normalization_min_lambda = 1420; 
 %normalization_max_lambda = 1216 + 40;              %   for flux normalization
-normalization_max_lambda = 1325; 
+normalization_max_lambda = 1470; 
 % null model parameters
-min_lambda         =  1216;                    % range of rest wavelengths to       Å
-max_lambda         = 1600;                    %   model
-dlambda            = 0.25;                    % separation of wavelength grid      Å
+min_lambda         =  1315;                    % range of rest wavelengths to       Å
+max_lambda         = 1550;                    %   model
+dlambda            = 0.05;                    % separation of wavelength grid      Å
 k                  = 20;                      % rank of non-diagonal contribution
-max_noise_variance = 4^2;                     % maximum pixel noise allowed during model training
+max_noise_variance = 0.5^2;                     % maximum pixel noise allowed during model training
 
 % optimization parameters
 minFunc_options =               ...           % optimization options for model fitting
@@ -69,16 +68,17 @@ minFunc_options =               ...           % optimization options for model f
 % C4 model parameters: parameter samples (for Quasi-Monte Carlo)
 num_C4_samples           = 10000;                  % number of parameter samples
 alpha                    = 0.9;                    % weight of KDE component in mixture
-uniform_min_log_nciv     = 13.0189;                   % range of column density samples    [cm⁻²]
-uniform_max_log_nciv     = 16;                   % from uniform distribution
-fit_min_log_nciv         = 13.0189;                   % range of column density samples    [cm⁻²]
-fit_max_log_nciv         = 15.8;                   % from fit to log PDF
-extrapolate_min_log_nciv = 13.0189;               % normalization range for the extrapolated region
+uniform_min_log_nciv     = 13.529;                   % range of column density samples    [cm⁻²]
+uniform_max_log_nciv     = 16.5;                   % from uniform distribution
+fit_min_log_nciv         = 13.529;                   % range of column density samples    [cm⁻²]
+fit_max_log_nciv         = 16;                   % from fit to log PDF
+extrapolate_min_log_nciv = 13.5;               % normalization range for the extrapolated region
+extrapolate_max_log_nciv = 15.5;               % normalization range for the extrapolated region
 min_sigma                = 5e5;                   % cm/s -> b/sqrt(2) -> min Doppler par from Cooksey
 max_sigma                = 40e5;                   % cm/s -> b/sqrt(2) -> max Doppler par from Cooksey
-
+dz                       = 0;
+vCut                     = 5000;                    % maximum cut velocity for CIV system 
 % model prior parameters
-
 prior_z_qso_increase = kms_to_z(30000);       % use QSOs with z < (z_QSO + x) for prior
 
 % instrumental broadening parameters
@@ -88,15 +88,20 @@ pixel_spacing = 1e-4;                         % wavelength spacing of pixels in 
 % DLA model parameters: absorber range and model
 num_lines = 2;                                % number of members of CIV series to use
 
-max_z_cut = kms_to_z(3000);                   % max z_DLA = z_QSO - max_z_cut
+max_z_cut = kms_to_z(vCut);                   % max z_DLA = z_QSO - max_z_cut
 max_z_c4 = @(wavelengths, z_qso) ...         % determines maximum z_DLA to search
     (max(wavelengths)/civ_1548_wavelength - 1) - max_z_cut;
 
-min_z_cut = kms_to_z(3000);                   % min z_DLA = z_Ly∞ + min_z_cut
+min_z_cut = kms_to_z(vCut);                   % min z_DLA = z_Ly∞ + min_z_cut
 min_z_c4 = @(wavelengths, z_qso) ...         % determines minimum z_DLA to search
     max(min(wavelengths) / civ_1548_wavelength - 1,                          ...
         observed_wavelengths(min_lambda, z_qso) / civ_1548_wavelength - 1 + ...
         min_z_cut);
+
+training_set_name = sprintf('b-cond-sample-%d-L12-Nciv-%d-%d-dz-%d-zCut-%d',num_C4_samples,...
+                            fix(uniform_min_log_nciv*100),...
+                            fix(uniform_max_log_nciv*100),...
+                            fix(dz*100), vCut);
 
 % base directory for all data
 base_directory = 'data';

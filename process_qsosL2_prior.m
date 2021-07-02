@@ -77,17 +77,24 @@ M_interpolator = ...
     griddedInterpolant({rest_wavelengths, 1:k}, M,         'linear');
 
 % initialize results with nan
-min_z_c4s                 = nan(num_quasars, 1);
-max_z_c4s                 = nan(num_quasars, 1);
-log_priors_no_c4          = nan(num_quasars, 1);
-log_priors_c4             = nan(num_quasars, 1);
-log_likelihoods_no_c4     = nan(num_quasars, 1);
-sample_log_likelihoods_c4 = nan(num_quasars, num_C4_samples);
-log_likelihoods_c4        = nan(num_quasars, 1);
-log_posteriors_no_c4      = nan(num_quasars, 1);
-log_posteriors_c4         = nan(num_quasars, 1);
-map_N_c4                  = nan(num_quasars, 1);
-map_z_c4                  = nan(num_quasars, 1);
+min_z_c4s                   = nan(num_quasars, 1);
+max_z_c4s                   = nan(num_quasars, 1);
+log_priors_no_c4            = nan(num_quasars, 1);
+log_priors_c4               = nan(num_quasars, 1);
+log_likelihoods_no_c4       = nan(num_quasars, 1);
+sample_log_likelihoods_c4L1 = nan(num_quasars, num_C4_samples);
+sample_log_likelihoods_c4L1 = nan(num_quasars, num_C4_samples);
+log_likelihoods_c4L1        = nan(num_quasars, 1);
+log_likelihoods_c4L2        = nan(num_quasars, 1);
+log_posteriors_no_c4        = nan(num_quasars, 1);
+log_posteriors_c4L1         = nan(num_quasars, 1);
+log_posteriors_c4L2         = nan(num_quasars, 1);
+map_N_c4L1                  = nan(num_quasars, 1);
+map_N_c4L2                  = nan(num_quasars, 1);
+map_z_c4L1                  = nan(num_quasars, 1);
+map_z_c4L2                  = nan(num_quasars, 1);
+map_sigma_c4L1              = nan(num_quasars, 1);
+map_sigma_c4L2              = nan(num_quasars, 1);
 sample_sigma_c4 = min_sigma + (max_sigma-min_sigma)*offset_sigma_samples;
 
 for quasar_ind = 1:num_quasars
@@ -134,11 +141,26 @@ for quasar_ind = 1:num_quasars
     this_p_c4 = this_num_c4 / this_num_quasars;
     log_priors_c4(quasar_ind) = ...
         log(                   this_num_c4) - log(this_num_quasars);
-    log_priors_no_c4(quasar_ind) = ...
-        log(this_num_quasars - this_num_c4) - log(this_num_quasars);
+    % log_priors_no_c4(quasar_ind) = ...
+        % log(this_num_quasars - this_num_c4) - log(this_num_quasars);
     fprintf('\n');
     fprintf(' ...     p(   CIV | z_QSO)  mvn      : %0.3f\n',     this_p_c4);
-    fprintf(' ...     p(no CIV | z_QSO)        : %0.3f\n', 1 - this_p_c4);
+    % fprintf(' ...     p(no CIV | z_QSO)        : %0.3f\n', 1 - this_p_c4);
+
+      % L1 existence prior
+      less_ind = (prior.z_qsos < (z_qso + prior_z_qso_increase));
+      this_num_L1   = nnz(prior.L1_ind(less_ind));
+      this_num_quasars = nnz(less_ind);
+      this_p_L1 = this_num_L1 / this_num_quasars;
+      log_priors_L1(quasar_ind) = ...
+          log(                   this_num_L1) - log(this_num_quasars);
+      log_priors_no_c4(quasar_ind) = ...
+          log(this_num_quasars - this_num_L1- this_num_c4) - log(this_num_quasars);
+      fprintf('\n');
+      fprintf(' ...     p(   L1 | z_QSO)  mvn      : %0.3f\n',     this_p_L1);
+      fprintf(' ...     p(no CIV | z_QSO)        : %0.3f\n', 1 - this_p_L1 - this_p_c4);
+
+
     
     % interpolate model onto given wavelengths
     this_mu = mu_interpolator( this_rest_wavelengths);
@@ -195,74 +217,116 @@ for quasar_ind = 1:num_quasars
     % compute probabilities under DLA model for each of the sampled
     % (normalized offset, log(N HI)) pairs
     parfor i = 1:num_C4_samples
-        % absorption corresponding to this sample
-        absorption = voigt(padded_wavelengths, sample_z_c4(i), ...
+        % absorption corresponding to this sample with one absorption line asa noise model 
+        num_lines=1;
+        absorptionL1 = voigt(padded_wavelengths, sample_z_c4(i), ...
             nciv_samples(i), num_lines, sample_sigma_c4(i));
         
-        absorption = absorption(ind);
-        c4_mu     = this_mu     .* absorption;
-        c4_M      = this_M      .* absorption;
+        absorptionL1 = absorptionL1(ind);
+        c4_muL1     = this_mu     .* absorptionL1;
+        c4_ML1      = this_M      .* absorptionL1;
         %     dla_omega2 = this_omega2 .* absorption.^2;
         
-        sample_log_likelihoods_c4(quasar_ind, i) = ...
-            log_mvnpdf_low_rank(this_flux, c4_mu, c4_M, ...
+        sample_log_likelihoods_c4L1(quasar_ind, i) = ...
+            log_mvnpdf_low_rank(this_flux, c4_muL1, c4_ML1, ...
             this_noise_variance);
+
+        % absorption corresponding to this sample with two absorption lines as a doublet 
+        num_lines=2;
+        absorptionL2 = voigt(padded_wavelengths, sample_z_c4(i), ...
+        nciv_samples(i),num_lines , sample_sigma_c4(i));
+      
+        absorptionL2 = absorptionL2(ind);
+        c4_muL2     = this_mu     .* absorptionL2;
+        c4_ML2      = this_M      .* absorptionL2;
+        %     dla_omega2 = this_omega2 .* absorption.^2;
+      
+        sample_log_likelihoods_c4L2(quasar_ind, i) = ...
+          log_mvnpdf_low_rank(this_flux, c4_muL2, c4_ML2, ...
+          this_noise_variance);
         
     end
        
     % compute sample probabilities and log likelihood of DLA model in
-    % numerically safe manner
-    max_log_likelihood = max(sample_log_likelihoods_c4(quasar_ind, :));
-    sample_probabilities = ...
-        exp(sample_log_likelihoods_c4(quasar_ind, :) - ...
-        max_log_likelihood);
-    log_likelihoods_c4(quasar_ind) = ...
-        max_log_likelihood + log(mean(sample_probabilities));
+    % numerically safe manner for one line
+    max_log_likelihoodL1 = max(sample_log_likelihoods_c4L1(quasar_ind, :));
+    sample_probabilitiesL1 = ...
+        exp(sample_log_likelihoods_c4L1(quasar_ind, :) - ...
+        max_log_likelihoodL1);
+    log_likelihoods_c4L1(quasar_ind) = ...
+        max_log_likelihoodL1 + log(mean(sample_probabilitiesL1));
     
-    log_posteriors_c4(quasar_ind) = ...
-        log_priors_c4(quasar_ind) + log_likelihoods_c4(quasar_ind);
+    log_posteriors_c4L1(quasar_ind) = ...
+        log_priors_L1(quasar_ind) + log_likelihoods_c4L1(quasar_ind);
+    
+    fprintf(' ... log p(D | z_QSO,    L1)     : %0.2f\n', ...
+        log_likelihoods_c4L1(quasar_ind));
+    fprintf(' ... log p(L1 | D, z_QSO)        : %0.2f\n', ...
+        log_posteriors_c4L1(quasar_ind));
+
+       
+    % compute sample probabilities and log likelihood of DLA model in
+    % numerically safe manner for  doublet 
+    max_log_likelihoodL2 = max(sample_log_likelihoods_c4L2(quasar_ind, :));
+    sample_probabilitiesL2 = ...
+        exp(sample_log_likelihoods_c4L2(quasar_ind, :) - ...
+        max_log_likelihoodL2);
+    log_likelihoods_c4L2(quasar_ind) = ...
+        max_log_likelihoodL2 + log(mean(sample_probabilitiesL2));
+    
+    log_posteriors_c4L2(quasar_ind) = ...
+        log_priors_c4(quasar_ind) + log_likelihoods_c4L2(quasar_ind);
     
     fprintf(' ... log p(D | z_QSO,    CIV)     : %0.2f\n', ...
-        log_likelihoods_c4(quasar_ind));
+        log_likelihoods_c4L2(quasar_ind));
     fprintf(' ... log p(CIV | D, z_QSO)        : %0.2f\n', ...
-        log_posteriors_c4(quasar_ind));
+        log_posteriors_c4L2(quasar_ind));
     %  fprintf(' ... Num_CIV                      : %d\n ', ...
     %    Full_catalog.all_Num_c4_sys(quasar_ind))
     % fprintf('... FilterFlag                    : %d\n ', filter)
     
-    % plot_qso_mf;
-    [~, maxind] = nanmax(sample_log_likelihoods_c4(quasar_ind, :));
-    map_z_c4(quasar_ind)    = sample_z_c4(maxind);        
-    map_N_c4(quasar_ind)  = log_nciv_samples(maxind);
-    map_sigma_c4(quasar_ind)  = sample_sigma_c4(maxind);
-    fprintf('map(N): %.2f, map(z_c4): %.2f, map(b/1e5): %.2f\n',map_N_c4(quasar_ind),...
-     map_z_c4(quasar_ind), map_sigma_c4(quasar_ind)/1e5);
+    [~, maxindL1] = nanmax(sample_log_likelihoods_c4L1(quasar_ind, :));
+    map_z_c4L1(quasar_ind)    = sample_z_c4(maxindL1);        
+    map_N_c4L1(quasar_ind)  = log_nciv_samples(maxindL1);
+    map_sigma_c4L1(quasar_ind)  = sample_sigma_c4(maxindL1);
+    fprintf('L1\nmap(N): %.2f, map(z_c4): %.2f, map(b/1e5): %.2f\n',map_N_c4L1(quasar_ind),...
+     map_z_c4L1(quasar_ind), map_sigma_c4L1(quasar_ind)/1e5);
+
+    [~, maxindL2] = nanmax(sample_log_likelihoods_c4L2(quasar_ind, :));
+    map_z_c4L2(quasar_ind)    = sample_z_c4(maxindL2);        
+    map_N_c4L2(quasar_ind)  = log_nciv_samples(maxindL2);
+    map_sigma_c4L2(quasar_ind)  = sample_sigma_c4(maxindL2);
+    fprintf('L2\nmap(N): %.2f, map(z_c4): %.2f, map(b/1e5): %.2f\n',map_N_c4L2(quasar_ind),...
+    map_z_c4L2(quasar_ind), map_sigma_c4L2(quasar_ind)/1e5);
     fprintf(' took %0.3fs.\n', toc);
     
 end
 
 % compute model posteriors in numerically safe manner
 max_log_posteriors = ...
-    max([log_posteriors_no_c4, log_posteriors_c4], [], 2);
+    max([log_posteriors_no_c4, log_posteriors_c4L1, log_posteriors_c4L2], [], 2);
 
 model_posteriors = ...
-    exp([log_posteriors_no_c4, log_posteriors_c4] - max_log_posteriors);
+    exp([log_posteriors_no_c4, log_posteriors_c4L1, log_posteriors_c4L2] - max_log_posteriors);
 
 model_posteriors = model_posteriors ./ sum(model_posteriors, 2);
 
 p_no_c4 = model_posteriors(:, 1);
-p_c4    = 1 - p_no_c4;
+p_L1 = model_posteriors(:,2);
+p_c4    = 1 - p_no_c4 - p_L1;
 
 % save results
 variables_to_save = {'training_release', 'training_set_name', ...
     'c4_catalog_name', 'prior_ind', 'release', ...
     'test_ind', 'prior_z_qso_increase', ...
-    'max_z_cut', 'num_lines', 'min_z_c4s', 'max_z_c4s', ...
+    'max_z_cut', 'min_z_c4s', 'max_z_c4s', ...
     'log_priors_no_c4', 'log_priors_c4', ...
-    'log_likelihoods_no_c4', 'sample_log_likelihoods_c4', ...
-    'log_likelihoods_c4', 'log_posteriors_no_c4', ...
-    'log_posteriors_c4', 'model_posteriors', 'p_no_c4', ...
-    'p_c4', 'map_z_c4', 'map_N_c4', 'map_sigma_c4'};
+    'log_likelihoods_no_c4', 'sample_log_likelihoods_c4L1', ...
+    'sample_log_likelihoods_c4L2','log_likelihoods_c4L1', 'log_likelihoods_c4L2'...
+    'log_posteriors_no_c4', 'log_posteriors_c4L1', 'log_posteriors_c4L2',...
+    'model_posteriors', 'p_no_c4', ...
+    'p_c4','p_L1', 'map_z_c4L1', 'map_N_c4L1', 'map_sigma_c4L1', ...
+    'map_z_c4L2', 'map_N_c4L2', 'map_sigma_c4L2'};
 
 filename = sprintf('%s/processed_qsos_%s', ...
     processed_directory(release), ...

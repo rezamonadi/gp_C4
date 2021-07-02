@@ -28,9 +28,11 @@ for i = 1:num_quasars
       = file_loader(all_mjd_dr7(i), all_plate_dr7(i),all_fiber_dr7(i));
 	% Here file_loader uses dr7 spectrum reader function and given mpf to read
 	% spectrum 
-      
-  this_rest_wavelengths = emitted_wavelengths(this_wavelengths, all_zqso(i));
+  
+  % Masking Sky lines 
+  this_pixel_mask((abs(this_wavelengths-5579)<5) & (abs(this_wavelengths-6302)<5))=1;
 
+  this_rest_wavelengths = emitted_wavelengths(this_wavelengths, all_zqso(i));
   % normalize flux
   
   ind = (this_rest_wavelengths >= normalization_min_lambda) & ...
